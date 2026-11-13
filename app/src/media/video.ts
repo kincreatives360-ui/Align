@@ -96,13 +96,20 @@ export function seekVideo(item: MediaItem, time: number): Promise<void> {
   const entry = pool.get(item.id);
   if (!entry || !entry.ready) return Promise.reject(new Error('Video not ready'));
   return new Promise((resolve, reject) => {
+    const originalOnSeeked = entry.el.onseeked;
     entry.el.onseeked = () => {
-      entry.el.onseeked = null;
+      entry.el.onseeked = originalOnSeeked;
+      if (typeof originalOnSeeked === 'function') {
+        originalOnSeeked.call(entry.el, new Event('seeked'));
+      }
       resolve();
     };
     entry.el.currentTime = time;
     // Timeout fallback
-    setTimeout(() => reject(new Error('Seek timeout')), 5000);
+    setTimeout(() => {
+      entry.el.onseeked = originalOnSeeked;
+      reject(new Error('Seek timeout'));
+    }, 5000);
   });
 }
 

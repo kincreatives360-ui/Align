@@ -5,12 +5,23 @@
 import type { ProjectState } from '../state/types';
 import { byId } from '../templates/registry';
 
-/** Safe number with fallback: Number(x) ?? def doesn't work because Number(undefined) is NaN.
- * Also handles null/undefined/empty string -> NaN so it falls back. */
-export function numOr(v: unknown, def: number): number {
-  if (v === null || v === undefined || v === '') return def;
+/** A finite number, or `fallback`. `Number(undefined) ?? x` is NaN, never x, so we check explicitly. */
+export function numOr(v: unknown, fallback: number): number {
+  if (v === undefined || v === null || v === '') return fallback;
   const n = Number(v);
-  return Number.isFinite(n) ? n : def;
+  return Number.isFinite(n) ? n : fallback;
+}
+
+type TimedTemplate = { dur?: number; step?: boolean; perCard?: number; fixedN?: boolean; n: number };
+
+/** The template's base duration in seconds (one full loop). Shared by the timeline and the frame builder. */
+export function durationRef(t: TimedTemplate, P: Record<string, unknown>): number {
+  if (t.step) {
+    const n = t.fixedN ? t.n : numOr(P.count, t.n);
+    const per = t.perCard ?? 1.4;
+    return per * n;
+  }
+  return t.dur ?? 10;
 }
 
 /** Get the clip duration in seconds. */
@@ -33,33 +44,16 @@ export function clipInfo(state: ProjectState): { loop: number; clip: number; rat
   return { loop, clip, rate, loops };
 }
 
-/** Return the template's base duration in seconds. */
-export function durationRef(t: { dur?: number; step?: boolean; perCard?: number; fixedN?: boolean; n: number }, P: Record<string, any>): number {
-  if (!t) return 10;
-  if (t.step) {
-    const n = t.fixedN ? t.n : (numOr(P.count, t.n) || t.n);
-    const per = numOr(t.perCard, 1.4);
-    return per * n;
-  }
-  return numOr(t.dur, 10);
-}
-
 /** Wrap `t` into [0, clipLength). */
 export function wrapTime(t: number, len: number): number {
-  if (len <= 0) return 0;
+  if (!(len > 0)) return 0;
   return ((t % len) + len) % len;
 }
 
-/** Format `t` as mm:ss.t with the clip length `len` for display. */
+/** Format `t` as m:ss.t, e.g. 0:05.3. Rounds first so 59.96 reads 1:00.0, never 0:60.0. */
 export function formatTime(t: number, _len: number): string {
-  // Clamp to avoid 0:60.0 edge case
-  const clamped = Math.min(t, _len - 0.05);
-  const minutes = Math.floor(clamped / 60);
-  const seconds = clamped % 60;
-  const formattedSeconds = seconds.toFixed(1).padStart(4, '0');
-  // Handle edge case where seconds rounds to 60.0
-  if (formattedSeconds === '60.0') {
-    return `${minutes + 1}:00.0`;
-  }
-  return `${minutes}:${formattedSeconds}`;
+  const tenths = Math.max(0, Math.round(t * 10));
+  const minutes = Math.floor(tenths / 600);
+  const seconds = (tenths % 600) / 10;
+  return `${minutes}:${seconds.toFixed(1).padStart(4, '0')}`;
 }

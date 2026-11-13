@@ -6,7 +6,7 @@ import { cardSection, shadowSection, shadeSection, blurSection } from './cards';
 import { cameraSection } from './camera';
 import { effectsSection } from './effects';
 import { titleSection, labelsSection, logoSection, animSection } from './text';
-import { flareParams } from './flare';
+import { flareParams } from '../../../templates/flareParams';
 
 /**
  * The whole look inspector, as data, in display order.
@@ -33,31 +33,8 @@ export const STYLE_SECTIONS: ControlSection[] = [
 ];
 
 /** Template-specific parameter sections. */
-export const TEMPLATE_PARAM_SECTIONS: Record<string, { def: any; sections: ControlSection[] }> = {
+export const TEMPLATE_PARAM_SECTIONS: Record<string, { sections: ControlSection[] }> = {
   'flare-duo': {
-    def: {
-      params: {
-        count: 8,
-        width: 0.9,
-        speed: 1,
-        fdir: '1',
-        hold: 0.27,
-        antic: 0.3,
-        sweep: 0.633,
-        settle: 0.3,
-        curve: 'reference',
-        peak: 0.55,
-        edge: 0.28,
-        spread: 0.095,
-        handoff: 0.16,
-        pinch: 0.35,
-        rim: 28,
-        edgeShadow: 0.8,
-        fblur: 95,
-        blurSpread: 0.13,
-        chroma: 0.5,
-      },
-    },
     sections: [
       {
         id: 'p-flare',

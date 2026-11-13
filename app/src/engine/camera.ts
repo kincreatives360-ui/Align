@@ -1,5 +1,5 @@
 import { D2R } from './math';
-import type { Vec3 } from '../templates/types';
+import type { Env, Template, Vec3 } from '../templates/types';
 
 export interface CameraDesc {
   fov: number;
@@ -37,18 +37,22 @@ export function buildCamera(
     };
     frame: { aspect: string };
   },
-  template: { fov?: number; frame: string; cardH?: number },
+  template: Pick<Template, 'fov' | 'frame' | 'cardH' | 'camera'>,
   _aspect: number,
-  clipPhase: number
+  clipPhase: number,
+  env?: Env
 ): CameraDesc {
   const cam = state.style.camera;
   const baseFov = template.fov || 30;
   const fov = Math.min(110, (baseFov * (cam.fov || 30)) / 30) * Math.PI / 180;
   const D = 1 / Math.tan(fov / 2);
 
-  // Template's default camera or identity
-  let eye: Vec3 = [0, 0, D];
-  let target: Vec3 = [0, 0, 0];
+  // Template's camera or the default camera.
+  const templateCamera = env && template.camera
+    ? template.camera(state.params, env)
+    : undefined;
+  const target: Vec3 = templateCamera?.target ?? [0, 0, 0];
+  let eye: Vec3 = templateCamera?.eye ?? [target[0], target[1], target[2] + D];
 
   // Global camera adjustments: zoom, orbit, tilt, drift
   const rel: Vec3 = [eye[0] - target[0], eye[1] - target[1], eye[2] - target[2]];

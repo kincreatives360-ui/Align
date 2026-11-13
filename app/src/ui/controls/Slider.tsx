@@ -21,6 +21,21 @@ function clampSnap(value: number, def: RangeControl): number {
 
 function display(value: number, def: RangeControl): string {
   if (value === 0 && def.zeroLabel) return def.zeroLabel;
+  if (def.unit !== undefined) {
+    switch (def.unit) {
+      case '°':
+        return `${Math.round(value)}°`;
+      case '×':
+        return def.step >= 1 ? `${value}×` : `${value.toFixed(2)}×`;
+      case ' turns':
+        return `${value > 0 ? '+' : ''}${value}${Math.abs(value) === 1 ? ' turn' : ' turns'}`;
+      case 's':
+        return `${value.toFixed(2)}s`;
+      default:
+        return `${value.toFixed(digits(def.step))}${def.unit}`;
+    }
+  }
+
   switch (def.format) {
     case 'percent':
       return `${Math.round(value * 100)}%`;

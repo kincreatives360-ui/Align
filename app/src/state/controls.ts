@@ -34,6 +34,8 @@ export interface RangeControl extends BaseControl {
   def: number;
   /** How the number is shown next to the slider. */
   format?: 'percent' | 'multiplier' | 'degrees' | 'turns' | 'seconds' | 'cycles' | 'none';
+  /** Source-specific suffix used by archived template controls. */
+  unit?: string;
   /** Text shown instead of `0` at exactly zero. */
   zeroLabel?: string;
 }

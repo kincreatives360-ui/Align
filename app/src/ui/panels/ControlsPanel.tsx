@@ -12,7 +12,8 @@ export function ControlsPanel() {
   const templateId = useProject(s => s.state.templateId);
   const state = useProject(s => s.state);
   const template = byId(templateId);
-  const groups = controlGroups(template);
+  const templateSections = TEMPLATE_PARAM_SECTIONS[templateId];
+  const groups = templateSections ? [] : controlGroups(template);
 
   const resetGroup = (_sectionId: string, controls: any[]) => {
     const keys = new Set<string>();
@@ -30,8 +31,6 @@ export function ControlsPanel() {
     });
     useProject.getState().commit();
   };
-
-  const templateSections = TEMPLATE_PARAM_SECTIONS[templateId];
 
   return (
     <>

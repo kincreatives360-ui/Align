@@ -2,16 +2,17 @@ import type { Aspect, ParamValue, StyleTree } from '../state/types';
 import type { ControlDef } from '../state/controls';
 
 export type CategoryId =
-  | 'classic'
-  | 'stack'
-  | 'ring'
-  | 'grid'
-  | 'glass'
-  | 'blur'
-  | 'bold'
-  | 'minimal'
+  | 'signature'
   | 'transitions'
-  | 'carousel';
+  | 'carousel'
+  | 'ring'
+  | 'stack'
+  | '3d'
+  | 'glass'
+  | 'gallery'
+  | 'kinetic'
+  | 'sculpture'
+  | 'choreo';
 
 export interface CategoryInfo {
   id: CategoryId;

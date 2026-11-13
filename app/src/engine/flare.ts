@@ -1,4 +1,5 @@
 import { clamp01, wrap } from '../engine/math';
+import { faceFor, mediaPicker } from '../media/mediaSource';
 import { bgDesc } from './media';
 import { buildCamera } from './camera';
 import { postDesc } from './buildFrame';
@@ -164,13 +165,13 @@ function numOr(v: unknown, def: number): number {
 export function buildFlare(
   state: any,
   template: any,
+  P: Record<string, any>,
   clipTime: number,
   width: number,
   height: number,
   style: any,
   clipRate: number
 ) {
-  const P = state.params;
   const T = clipTime * clipRate;
   const T2 = T * (numOr(P.speed, 1) || 1);
 
@@ -178,11 +179,12 @@ export function buildFlare(
   const fs = flareState(P, n, T2);
 
   const rect = flareRect(P, width, height, width / height);
-  const blurFracs = [0.25, 0.5, 0.75, 1.0]; // 4 mip levels
+  const blurFracs = [0.25, 0.5, 0.75];
   const u = flareUniforms(P, fs.m, width, height, rect, style, blurFracs);
 
-  const a = state.media.images[fs.a] || null;
-  const b = state.media.images[fs.b] || null;
+  const pick = mediaPicker(state.media);
+  const a = faceFor(pick(fs.a), fs.a, template.aspect, 1024);
+  const b = faceFor(pick(fs.b), fs.b, template.aspect, 1024);
 
   const aspect = width / height;
   const camera = buildCamera(state, template, aspect, 0);
@@ -197,8 +199,8 @@ export function buildFlare(
     cards: [],
     shadow: null,
     flare: {
-      a: a ? { key: a.id, aspect: a.width / a.height, res: 1024, kind: a.kind, img: a.id } : null,
-      b: b ? { key: b.id, aspect: b.width / b.height, res: 1024, kind: b.kind, img: b.id } : null,
+      a,
+      b,
       u,
       rect,
       fs,

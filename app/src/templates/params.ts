@@ -51,6 +51,24 @@ const groupOf = (key: string) => GROUPS[key] ?? 'Fine-tune';
 
 const lastSegment = (path: string) => path.split('.').pop() ?? path;
 
+function automaticGroups(controls: ControlDef[]): ControlSection[] {
+  const buckets = new Map<string, ControlDef[]>();
+
+  for (const control of controls) {
+    const key = control.type === 'header' ? '' : lastSegment(control.path);
+    const group = key ? groupOf(key) : 'Fine-tune';
+    const list = buckets.get(group) ?? [];
+    list.push(control);
+    buckets.set(group, list);
+  }
+
+  return [...buckets].map(([title, groupedControls]) => ({
+    id: `p-${title.toLowerCase().replace(/\s+/g, '-')}`,
+    title,
+    controls: groupedControls,
+  }));
+}
+
 /** The starting values for a template's parameters. */
 export function defaults(template: Template): Record<string, ParamValue> {
   const out: Record<string, ParamValue> = {};
@@ -76,19 +94,33 @@ export function controlGroups(template: Template): ControlSection[] {
   ];
 
   const own = template.params ?? [];
-  const buckets = new Map<string, ControlDef[]>();
+  if (!own.some(control => control.type === 'header')) {
+    sections.push(...automaticGroups(own));
+    return sections;
+  }
+
+  const leading: ControlDef[] = [];
+  let current: ControlSection | undefined;
+  let explicitIndex = 0;
 
   for (const control of own) {
-    const key = control.type === 'header' ? '' : lastSegment(control.path);
-    const group = key ? groupOf(key) : 'Fine-tune';
-    const list = buckets.get(group) ?? [];
-    list.push(control);
-    buckets.set(group, list);
+    if (control.type === 'header') {
+      if (current) sections.push(current);
+      const slug = control.label.toLowerCase().replace(/\s+/g, '-');
+      current = {
+        id: `p-${slug}-${explicitIndex++}`,
+        title: control.label,
+        controls: [],
+      };
+    } else if (current) {
+      current.controls.push(control);
+    } else {
+      leading.push(control);
+    }
   }
 
-  for (const [title, controls] of buckets) {
-    sections.push({ id: `p-${title.toLowerCase().replace(/\s+/g, '-')}`, title, controls });
-  }
+  if (current) sections.push(current);
+  sections.splice(1, 0, ...automaticGroups(leading));
 
   return sections;
 }

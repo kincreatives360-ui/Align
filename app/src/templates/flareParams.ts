@@ -1,4 +1,4 @@
-import type { ControlDef } from '../../../state/controls';
+import type { ControlDef } from '../state/controls';
 
 /** Flare Duo - the glass card hand-off transition. */
 export const flareParams: ControlDef[] = [

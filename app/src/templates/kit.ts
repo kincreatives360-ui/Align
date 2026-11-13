@@ -84,6 +84,64 @@ export function RZ(rad: number): Float32Array {
   return mat4.rotZ(rad);
 }
 
+/** Scale a matrix along its three axes. */
+export function S(x: number, y: number, z: number): Float32Array {
+  return mat4.scaling(x, y, z);
+}
+
+/** Rotations that turn a card's +Z face toward the given direction. */
+export function aim(fx: number, fy: number, fz: number): { rx: number; ry: number } {
+  return {
+    ry: Math.atan2(fx, fz),
+    rx: -Math.asin(Math.max(-1, Math.min(1, fy / (Math.hypot(fx, fy, fz) || 1)))),
+  };
+}
+
+/** An even spread of directions over a sphere. */
+export function fibo(i: number, n: number): [number, number, number] {
+  const y = 1 - 2 * (i + 0.5) / n;
+  const r = Math.sqrt(Math.max(0, 1 - y * y));
+  const a = i * 2.399963229728653;
+  return [Math.cos(a) * r, y, Math.sin(a) * r];
+}
+
+/** Build a card matrix from its centre, width direction X, and facing direction Z. */
+export function frame3(
+  px: number,
+  py: number,
+  pz: number,
+  X: [number, number, number],
+  Z: [number, number, number],
+): Float32Array {
+  let l = Math.hypot(X[0], X[1], X[2]) || 1;
+  const x0 = X[0] / l;
+  const x1 = X[1] / l;
+  const x2 = X[2] / l;
+  const d = Z[0] * x0 + Z[1] * x1 + Z[2] * x2;
+  let z0 = Z[0] - d * x0;
+  let z1 = Z[1] - d * x1;
+  let z2 = Z[2] - d * x2;
+  l = Math.hypot(z0, z1, z2) || 1;
+  z0 /= l;
+  z1 /= l;
+  z2 /= l;
+  const m = new Float32Array(16);
+  m[0] = x0;
+  m[1] = x1;
+  m[2] = x2;
+  m[4] = z1 * x2 - z2 * x1;
+  m[5] = z2 * x0 - z0 * x2;
+  m[6] = z0 * x1 - z1 * x0;
+  m[8] = z0;
+  m[9] = z1;
+  m[10] = z2;
+  m[12] = px;
+  m[13] = py;
+  m[14] = pz;
+  m[15] = 1;
+  return m;
+}
+
 /** Parameter helpers. */
 export const P_HOLD = { key: 'hold', label: 'Hold', type: 'range', min: 0, max: 0.9, step: 0.01, def: 0.5 };
 export const P_EASE = {

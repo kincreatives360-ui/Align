@@ -18,6 +18,7 @@ import {
   str,
   TAU,
   wrap,
+  tiltPt,
 } from './kit';
 
 /** Classic horizontal carousel - continuous motion. */
@@ -139,9 +140,9 @@ export function ringR(P: P, _E: Env): number {
   return 1.2 * num(P.radius, 1);
 }
 
-/** Carousel radius helper. */
-export function carouselR(_P: P, E: Env): number {
-  return 1.8 / Math.tan(Math.PI / E.n);
+/** Carousel radius follows card width, spacing, and the template's radius control. */
+export function carouselR(P: P, E: Env): number {
+  return Math.max(1.5, E.n * E.w * (1 + num(P.gap, 0.2)) / TAU) * num(P.radius, 1);
 }
 
 /** Glass Carousel - continuous ring with glass edges. */
@@ -478,7 +479,7 @@ export function slidePushLayout(i: number, P: P, E: Env): CardPose {
 
 /** Slide Push fill. */
 export function slidePushFill(P: P, E: Env): { m: number; count: number } {
-  return stripFill(E, E.vx, E.w * (1 + num(P.gap)) * (1 - (1 - num(P.sideScale, 0.82)) * 0.5));
+  return stripFill(E, E.vx, E.w * (1 + num(P.gap, 0.08)));
 }
 
 /** Cube Turn - 4 faces. */
@@ -542,7 +543,7 @@ export function cardFlipLayout(i: number, P: P, E: Env): CardPose {
 /** Rise Up - next image rises. */
 export function riseUpLayout(i: number, P: P, E: Env): CardPose {
   const u = stepU(E.p, E.n, E.hold, E.ez);
-  const r = rel(i - u + 1, u, E.n) - 1;
+  const r = wrap(i - u + 1, E.n) - 1;
   const d: any = { above: [0, 1], left: [-1, 0], right: [1, 0] }[str(P.from, 'below')] || [0, -1];
   const dx = d[0], dy = d[1];
   
@@ -575,7 +576,7 @@ export function riseUpLayout(i: number, P: P, E: Env): CardPose {
 export function swapLayout(i: number, P: P, E: Env): CardPose {
   const n = E.n;
   const u = stepU(E.p, n, E.hold, E.ez);
-  const r = rel(i, u, n);
+  const r = wrap(i - u, n);
   
   const slot = (rr: number) => ({
     x: rr * E.w * 0.09 * num(P.spread, 1),
@@ -611,7 +612,7 @@ export function swapLayout(i: number, P: P, E: Env): CardPose {
 /** Zoom Blur - rush toward camera. */
 export function zoomBlurLayout(i: number, P: P, E: Env): CardPose {
   const u = stepU(E.p, E.n, E.hold, E.ez);
-  const r = rel(i - u + 1, u, E.n) - 1;
+  const r = wrap(i - u + 1, E.n) - 1;
   
   if (r <= 0) {
     return {
@@ -804,13 +805,378 @@ export function meltRowFill(P: P, E: Env): { m: number; count: number } {
 
 /** Glass Stream - three columns streaming. */
 export function glassStreamLayout(i: number, P: P, E: Env): CardPose {
-  return masonryLayout(i, P, E);
+  const cols = Math.round(num(P.cols, 3));
+  const m = E.m;
+  const col = i % cols;
+  const row = Math.floor(i / cols);
+  const odd = col % 2;
+  const centre = (cols - 1) / 2;
+  const r = rel(row, E.p * E.mb * (odd && str(P.flow) !== 'same' ? -1 : 1) * (odd ? Math.round(num(P.oddSpeed, 1)) : 1), m);
+  const y = (r + odd * num(P.colOffset)) * E.h * (1 + num(P.gap));
+  const edge = clamp01(ab(y) / E.vy);
+  const centreScale = Math.max(0, 1 - ab(y) / (E.h * (1 + num(P.gap)) * 1.5));
+
+  return {
+    x: (col - centre) * E.w * (1 + num(P.gap) + num(P.colSpace)),
+    y,
+    ry: centre ? -num(P.colTurn) * 0.6 * (col - centre) / centre : 0,
+    s: 1 + num(P.pop) * centreScale * centreScale,
+    o: wrapFade(r, m),
+    b: 1 - num(P.edgeShade) * edge,
+    blur: num(P.edgeBlur) * edge * edge,
+    img: (row % num(E.mb)) * cols + col,
+  };
 }
 
 /** Glass Stream fill. */
 export function glassStreamFill(P: P, E: Env): { m: number; mb: number; count: number } {
   const cols = Math.round(num(P.cols, 3));
-  return laneFill(E, E.vy * (1 + num(P.colDepth) / E.D), E.w * 1.12 * (1 + num(P.gap)), cols);
+  return laneFill(E, E.vy, E.h * (1 + num(P.gap)), cols);
+}
+
+/** Prism Slider - cards sit on faces of a turning prism. */
+export function prismSliderLayout(i: number, P: P, E: Env): CardPose {
+  const n = E.n;
+  const a0 = TAU / n;
+  const apo = E.w * (1 + num(P.gap)) / (2 * Math.tan(Math.PI / n)) * num(P.prismDepth, 1);
+  const u = stepU(E.p, n, E.hold, E.ez);
+  const r = rel(i, u, n);
+  const a = r * a0;
+  const k = Math.min(1, Math.abs(r));
+  const tw = Math.sin(Math.PI * (u - Math.floor(u)));
+  
+  return {
+    m: M(
+      T(r * E.w * num(P.sideSpread), tw * num(P.turnLift) * E.h * 0.25, 0),
+      RX(num(P.axisTilt) + tw * num(P.lean) * 0.35),
+      T(0, 0, -apo),
+      RY(a),
+      T(0, 0, apo)
+    ),
+    o: Math.max(0, Math.min(1, (Math.cos(a) + num(P.reach, 0.05)) * 6)),
+    s: 1 + num(P.pop) * (1 - k),
+    b: 1 - num(P.sideShade) * k * 0.6,
+    blur: num(P.sideBlur) * k,
+  };
+}
+
+/** Portal - fly through images one after another. */
+export function portalLayout(i: number, P: P, E: Env): CardPose {
+  const u = stepU(E.p, E.n, E.hold, E.ez);
+  const r = wrap(i - u + 1, E.n) - 1;
+  const c = r * num(P.curl);
+  
+  const o = r < 0 
+    ? Math.max(0, Math.min(1, 1 + r * num(P.exitFade, 1.6)))
+    : Math.max(0, Math.min(1, 1 - (r - num(P.queue, 2.2)) / 1.2));
+  
+  return {
+    x: r * num(P.drift) * E.w * 0.5 + Math.sin(c) * r * 0.35,
+    y: (1 - Math.cos(c)) * r * 0.35,
+    z: -r * num(P.depth, 1.8),
+    rz: r * num(P.twist),
+    ry: r < 0 ? -r * num(P.exitTurn) : 0,
+    s: r < 0 ? 1 - r * num(P.exitGrow) : 1,
+    o,
+    blur: Math.max(0, Math.min(1, Math.abs(r) * 0.45 * num(P.depthBlur, 1))),
+    b: r < 0 ? 1 : 1 - Math.min(0.5, r * 0.15) * num(P.depthDim, 1),
+  };
+}
+
+/** Ring - tilted ring of curved cards. */
+export function ringLayout2(i: number, P: P, E: Env): CardPose {
+  const R = Math.max(0.8, E.n * E.w * (1 + (num(P.gap, 0.1))) / TAU) * num(P.radius, 1);
+  const a = i / E.n * TAU + E.p * TAU * Math.round(num(P.laps, 1));
+  const c = Math.cos(a);
+  const face = String(P.face || 'out');
+  const wob = num(P.wob) * Math.sin(a * 2) * E.h;
+  
+  return {
+    x: R * Math.sin(a),
+    z: R * c * num(P.squash, 1),
+    y: wob,
+    ry: face === 'cam' ? 0 : face === 'in' ? a + Math.PI : a,
+    bend: face === 'cam' ? 0 : (face === 'in' ? -num(P.curl, 1) : num(P.curl, 1)) / R,
+    b: 1 - num(P.dim) * (1 - c) / 2,
+    o: 1 - num(P.fadeBack) * (1 - c) / 2,
+    s: 1 + num(P.pop) * Math.pow(Math.max(0, c), 4),
+  };
+}
+
+/** Double Ring - two rings turning against each other. */
+export function doubleRingLayout(i: number, P: P, E: Env): CardPose {
+  const half = Math.ceil(E.n / 2);
+  const ring = i % 2;
+  const k = Math.floor(i / 2);
+  const R = 1.5 * num(P.radius, 1);
+  const sg = ring ? -1 : 1;
+  const face = String(P.face || 'out');
+  
+  const a = (k + ring * num(P.offs, 0)) / half * TAU + Math.round(ring ? num(P.botTurns, -1) : num(P.topTurns, 1)) * E.p * TAU;
+  const c = Math.cos(a);
+  const [x, y, z] = tiltPt(R * Math.sin(a), 0, R * c * num(P.squash, 1), sg * num(P.lean, 0), 0);
+  
+  return {
+    x, z,
+    y: y + sg * E.h * num(P.sep, 0.62),
+    rx: sg * num(P.lean, 0),
+    ry: face === 'cam' ? 0 : face === 'in' ? a + Math.PI : a,
+    bend: face === 'cam' ? 0 : (face === 'in' ? -num(P.curl, 1) : num(P.curl, 1)) / R,
+    b: 1 - num(P.dim) * (1 - c) / 2,
+  };
+}
+
+/** Helix - spiral staircase of images. */
+export function helixLayout(i: number, P: P, E: Env): CardPose {
+  const n = E.n;
+  const cl = Math.round(num(P.climb, 0));
+  const j = cl ? wrap(i + E.p * n * cl, n) : i;
+  const f = (j - (n - 1) / 2) / Math.max(1, n - 1);
+  const R = 1.25 * num(P.radius, 1) * (1 + num(P.taper, 0) * f * 1.5);
+  const a = j * num(P.turns, 0.55) + E.p * TAU * Math.round(num(P.laps, 1));
+  const y = (j - (n - 1) / 2) * num(P.pitch, 0.16);
+  const c = Math.cos(a);
+  
+  return {
+    x: R * Math.sin(a),
+    z: R * c * num(P.squash, 1),
+    y,
+    ry: a,
+    bend: num(P.curl, 1) / R,
+    b: 1 - num(P.dim, 0.5) + num(P.dim, 0.5) * Math.max(0, c),
+    o: (cl ? wrapFade(j - n / 2, n) : 1) * (1 - num(P.fadeBack) * Math.max(0, Math.min(1, -c))),
+    s: 1 + num(P.pop) * Math.pow(Math.max(0, c), 4),
+  };
+}
+
+/** Sphere - images tiled over a turning globe. */
+export function sphereLayout(i: number, P: P, E: Env): CardPose {
+  const R = 1.35 * num(P.radius, 1) * (1 + num(P.breathe, 0) * Math.sin(E.p * TAU * 2));
+  const y = 1 - 2 * (i + 0.5) / E.n;
+  const r = Math.sqrt(Math.max(0, 1 - y * y));
+  const ph = i * 2.39996 + E.p * TAU * Math.round(num(P.laps, 1)) * (num(P.counter, 0) && y < 0 ? -1 : 1);
+  const [X, Y, Z] = tiltPt(Math.sin(ph) * r * R, y * R * num(P.flat, 1), Math.cos(ph) * r * R, num(P.axis, 0.25), 0);
+  const cam = String(P.face || 'out') === 'cam';
+  const k = Math.max(0, Math.min(1, Z / R * 0.5 + 0.6));
+  
+  return {
+    x: X,
+    y: Y,
+    z: Z - 0.4,
+    ry: cam ? 0 : ph,
+    rx: cam ? 0 : -Math.asin(Math.max(-1, Math.min(1, y))) + num(P.axis, 0.25) * Math.cos(ph),
+    b: 1 - 0.6 * num(P.dim, 1) * (1 - k),
+    o: 1 - num(P.fadeBack) * (1 - k),
+    s: 1 + num(P.pop) * Math.pow(k, 4),
+  };
+}
+
+/** Ribbon Loop - twisted loop of cards. */
+export function ribbonLoopLayout(i: number, P: P, E: Env): CardPose {
+  const R = 0.62 * num(P.radius, 1);
+  const th = (i / E.n + E.p * Math.round(num(P.laps, 1))) * TAU;
+  const L = Math.round(num(P.lobes, 2));
+  const sn = Math.sin(th);
+  
+  return {
+    x: R * Math.cos(th) * num(P.wide, 0.95),
+    y: Math.sin(th * L) * 0.32 * num(P.twist, 0.7),
+    z: R * sn * num(P.deep, 0.7),
+    ry: -th + Math.PI / 2,
+    rz: sn * num(P.bank, 0.55) * num(P.twist, 0.7),
+    rx: Math.cos(th * L) * 0.25 * num(P.twist, 0.7),
+    bend: num(P.curl, 0),
+    b: 1 - num(P.dim) * (1 - sn) / 2,
+    s: 1 + num(P.pop) * Math.pow(Math.max(0, sn), 4),
+  };
+}
+
+/** Tunnel - fly down a tunnel lined with images. */
+export function tunnelLayout(i: number, P: P, E: Env): CardPose {
+  const per = Math.round(num(P.per, 8));
+  const rings = Math.max(1, Math.floor(E.n / per));
+  const ring = Math.floor(i / per) % rings;
+  const k = i % per;
+  const t = wrap(ring / rings + E.p, 1);
+  const a = k / per * TAU + ring * num(P.twistT, 0.4) + E.p * TAU * Math.round(num(P.roll, 0));
+  const R = 1.35 * num(P.radius, 1);
+  const q = 1 - t;
+  const x = Math.cos(a) * R * E.asp * 0.85 * num(P.oval, 1) + num(P.snake, 0) * q * q * 3 * Math.sin(E.p * TAU);
+  const y = Math.sin(a) * R;
+  const z = -num(P.len, 12) + t * (num(P.len, 12) + 2.2);
+  const o = Math.max(0, Math.min(1, t * 4)) * Math.max(0, Math.min(1, (1 - t) * 6)) * (1 - num(P.fog) * q);
+  const b = 1 - num(P.dim) * q;
+  
+  if (String(P.face || 'cam') === 'wall') {
+    return { m: M(T(x, y, z), RZ(a + Math.PI / 2), RX(-Math.PI / 2)), o, b };
+  }
+  return { x, y, z, rz: a + Math.PI / 2, o, b };
+}
+
+/** Wheel - images arranged like clock hours. */
+export function wheelLayout(i: number, P: P, E: Env): CardPose {
+  const R = 0.7 * num(P.radius, 1) * (1 + num(P.pulse) * Math.sin(E.p * TAU * 2));
+  const a = i / E.n * TAU + E.p * TAU * Math.round(num(P.laps, 1));
+  const c = Math.cos(a);
+  const upright = str(P.upright, 'radial') === 'upright';
+
+  return {
+    m: M(RX(num(P.tilt, 0.35)), RY(num(P.yaw)), RZ(a), T(0, R, 0), RZ((upright ? -a : 0) + num(P.fan)), RX(num(P.lean))),
+    s: 1 + num(P.pop) * Math.pow(Math.max(0, c), 4),
+    b: 1 - num(P.dim) * (1 - c) / 2,
+  };
+}
+
+/** Saturn - hero with orbiting ring. */
+export function saturnLayout(i: number, P: P, E: Env): CardPose {
+  if (i === 0) {
+    return { s: num(P.hero, 2.6), ry: Math.sin(E.p * TAU) * 0.15 * num(P.sway, 1), zBias: 0 };
+  }
+  const a = (i - 1) / (E.n - 1) * TAU + E.p * TAU * Math.round(num(P.laps, 1));
+  const R = 1.7 * num(P.radius, 1);
+  const [x, y, z] = tiltPt(Math.sin(a) * R * num(P.oval, 1), 0, Math.cos(a) * R, num(P.tilt, 0.42), 0);
+  const face = String(P.face || 'cam') === 'out';
+  
+  return {
+    x, y: y + num(P.rise, 0), z,
+    ry: face ? a : 0,
+    s: num(P.moon, 1),
+    b: 1 - num(P.dim, 0.3) + num(P.dim, 0.3) * Math.max(0, Math.cos(a)),
+  };
+}
+
+/** Elastic Scroll - row that stretches and bows. */
+export function elasticLayout(i: number, P: P, E: Env): CardPose {
+  const n = E.n;
+  const r0 = rel(i, stepU(E.p, n, E.hold, E.ez), E.m);
+  const pd = E.p - Math.max(-3, Math.min(3, r0)) * num(P.lag, 0.0035) * num(P.elastic, 1);
+  const r = rel(i, stepU(pd, n, E.hold, E.ez), E.m);
+  const v = Math.max(0, Math.min(1, stepSpeed(pd, n, E.hold, E.ez) * (1 - E.hold) / 5 * num(P.elastic, 1)));
+  
+  return {
+    x: r * E.w * (1 + num(P.gap, 0.12)),
+    y: -v * num(P.dip, 0),
+    z: -v * num(P.sink, 0.7),
+    ry: -v * num(P.swing, 0.25),
+    bend: v * num(P.bow, 2.4),
+    s: 1 - v * num(P.squeeze, 0.1),
+    blur: v * num(P.soft, 0),
+    b: 1 - Math.min(1, v) * num(P.dim, 0),
+    o: wrapFade(r, E.m),
+  };
+}
+
+/** Paper Roll - columns running like paper over rollers. */
+export function paperRollLayout(i: number, P: P, E: Env): CardPose {
+  const cols = Math.round(num(P.cols, 3));
+  const m = Math.ceil(E.n / cols);
+  const col = i % cols;
+  const row = Math.floor(i / cols);
+  const dr = String(P.colDir || 'same') === 'alt' && col % 2 ? -1 : 1;
+  const R = num(P.roll, 0.3);
+  const L = m * E.h * (1 + num(P.gap, 0.08));
+  const Y = Math.max(0.05, (L - TAU * R) / 4);
+  let s = wrap(row / m + col * num(P.offR, 0) / m + E.p * Math.round(num(P.laps, 1)) * dr, 1) * L;
+  let y, z, th, rl = 0;
+  
+  if (s < 2 * Y) { y = -Y + s; z = 0; th = 0; }
+  else if ((s -= 2 * Y) < Math.PI * R) { th = s / R; y = Y + R * Math.sin(th); z = -R + R * Math.cos(th); rl = 1; }
+  else if ((s -= Math.PI * R) < 2 * Y) { y = Y - s; z = -2 * R; th = Math.PI; }
+  else { s -= 2 * Y; th = Math.PI + s / R; y = -Y + R * Math.sin(th); z = -R + R * Math.cos(th); rl = 1; }
+  
+  const c = Math.cos(th);
+  return {
+    x: (col - (cols - 1) / 2) * E.w * (1 + num(P.gap, 0.08) * num(P.colSp, 2.5)),
+    y, z,
+    rx: -th,
+    bendY: rl * num(P.curl, 0) / R,
+    b: 1 - num(P.dim, 0.4) + num(P.dim, 0.4) * Math.max(0, c),
+    o: 1 - num(P.fadeBack) * Math.max(0, Math.min(1, -c)),
+  };
+}
+
+/** Hero Strip - filmstrip of thumbnails growing into hero. */
+export function heroStripLayout(i: number, P: P, E: Env): CardPose {
+  const n = E.n;
+  const u = stepU(E.p, n, E.hold, E.ez);
+  const k = Math.floor(u);
+  const f = u - k;
+  const cur = wrap(k, n);
+  const nxt = wrap(k + 1, n);
+  const e = i === cur ? 1 - f : i === nxt ? f : 0;
+  const ts = num(P.thumb, 0.21);
+  const top = String(P.stripPos || 'bottom') === 'top';
+  const se = Math.sin(e * Math.PI);
+  
+  const tx = (i - (n - 1) / 2) * E.w * ts * (1 + num(P.gap, 0.15));
+  const ty = top ? 0.96 - E.h * ts / 2 : -0.96 + E.h * ts / 2;
+  
+  return {
+    x: lerp(tx, 0, e),
+    y: lerp(ty, top ? -num(P.heroY, 0.14) : num(P.heroY, 0.14), e) + se * num(P.hop, 0),
+    s: lerp(ts, num(P.heroSz, 1), e),
+    z: se * num(P.arc, 0.2),
+    ry: se * num(P.turn, 0),
+    b: lerp(num(P.thumbB, 1), 1, e),
+    zBias: i === nxt ? 6 : e * 5,
+  };
+}
+
+/** Ring fill. */
+export function ringFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Double Ring fill. */
+export function doubleRingFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Helix fill. */
+export function helixFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Sphere fill. */
+export function sphereFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Ribbon Loop fill. */
+export function ribbonLoopFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Tunnel fill. */
+export function tunnelFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Wheel fill. */
+export function wheelFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Saturn fill. */
+export function saturnFill(_P: P, E: Env): { m: number; count: number } {
+  return { m: 1, count: E.n };
+}
+
+/** Elastic fill. */
+export function elasticFill(P: P, E: Env): { m: number; count: number } {
+  return stripFill(E, E.vx, E.w * (1 + num(P.gap)));
+}
+
+/** Paper Roll fill. */
+export function paperRollFill(P: P, E: Env): { m: number; count: number } {
+  const cols = Math.round(num(P.cols, 3));
+  const m = Math.ceil(E.n / cols);
+  return { m, count: m * cols };
+}
+
+/** Hero Strip fill. */
+export function heroStripFill(P: P, E: Env): { m: number; count: number } {
+  return stripFill(E, E.vx, E.w * num(P.thumb, 0.21) * (1 + num(P.gap, 0.15)));
 }
 
 // Helper function

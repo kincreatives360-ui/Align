@@ -1,4 +1,5 @@
 import { useProject } from '../../state/store';
+import { applyTemplate } from '../../templates/select';
 import type { Template } from '../../templates/types';
 
 interface Props {
@@ -13,7 +14,7 @@ export function TemplateCard({ template }: Props) {
   const active = useProject(s => s.state.templateId) === template.id;
 
   const apply = () => {
-    useProject.getState().mutate(s => ({ ...s, templateId: template.id, params: {} }));
+    useProject.getState().mutate(s => applyTemplate(s, template));
     useProject.getState().commit();
   };
 

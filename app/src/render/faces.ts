@@ -1,4 +1,5 @@
 import type { FaceRef } from '../state/types';
+import { paintPlaceholder } from './placeholder';
 
 /**
  * Card faces: turning an image, a video frame or a placeholder into the
@@ -39,21 +40,6 @@ export function isPlaceholder(key: string): boolean {
   return key.startsWith('ph:');
 }
 
-function paintPlaceholder(g: CanvasRenderingContext2D, w: number, h: number, index: number): void {
-  const hue = (index * 47 + 210) % 360;
-  const grad = g.createLinearGradient(0, 0, w, h);
-  grad.addColorStop(0, `hsl(${hue} 55% 54%)`);
-  grad.addColorStop(1, `hsl(${(hue + 40) % 360} 60% 26%)`);
-  g.fillStyle = grad;
-  g.fillRect(0, 0, w, h);
-
-  g.fillStyle = 'rgba(255,255,255,0.22)';
-  g.font = `600 ${Math.round(Math.min(w, h) * 0.42)}px Inter, system-ui, sans-serif`;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(String(index + 1), w / 2, h / 2);
-}
-
 /**
  * Paint `src` onto `canvas`, cropped to fill it (like CSS `object-fit: cover`).
  * Called once for stills and again for every new video frame.
@@ -69,7 +55,7 @@ export function paintFace(canvas: HTMLCanvasElement, src: FaceRef): void {
   g.fillRect(0, 0, w, h);
 
   if (isPlaceholder(src.key)) {
-    paintPlaceholder(g, w, h, Number(src.key.slice(3)) || 0);
+    paintPlaceholder(canvas, Number(src.key.slice(3)) || 0);
     return;
   }
 

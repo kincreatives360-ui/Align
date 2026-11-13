@@ -7,6 +7,7 @@ import { useProject, seedHistory } from './state/store';
 import { loadDraft } from './state/persistence';
 import { migrate } from './state/migrate';
 import { toast } from './state/toastStore';
+import { registerDefaultPhotos } from './media/defaultPhotos';
 
 /**
  * Bring back the draft the app has been autosaving. Nothing read it before, so a
@@ -37,6 +38,9 @@ function restoreDraft(): void {
 
 restoreDraft();
 seedHistory();
+
+// Register default photos from the reference site
+registerDefaultPhotos();
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing #root element');

@@ -1,11 +1,12 @@
-import { useToast } from '../../state/toastStore';
+import { useToast, type ToastType } from '../../state/toastStore';
 import { CheckIcon } from '../icons/CheckIcon';
 import { AlertCircleIcon } from '../icons/AlertCircleIcon';
 import { AlertTriangleIcon } from '../icons/AlertTriangleIcon';
 import { InfoIcon } from '../icons/InfoIcon';
 import { LoaderIcon } from '../icons/LoaderIcon';
 
-const ICONS: Record<string, React.FC> = {
+const ICONS: Record<ToastType, React.FC> = {
+  default: InfoIcon,
   success: CheckIcon,
   error: AlertCircleIcon,
   warning: AlertTriangleIcon,

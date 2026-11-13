@@ -1,6 +1,7 @@
 import type { ProjectState, FrameDescriptor, PostDesc } from '../state/types';
 import { byId } from '../templates/registry';
 import { defaults } from '../templates/params';
+import type { Env } from '../templates/types';
 import { clipInfo, wrapTime, durationRef, numOr } from './timing';
 import { faceFor, mediaPicker } from '../media/mediaSource';
 import { buildCamera, computeViewExtents } from './camera';
@@ -77,7 +78,7 @@ export function buildFrame(
 
   // Handle flare templates with the proper glass hand-off effect
   if (template.kind === 'flare') {
-    return buildFlare(state, template, clipTime, width, height, style, rate);
+    return buildFlare(state, template, P, clipTime, width, height, style, rate);
   }
 
   // Card count
@@ -102,37 +103,39 @@ export function buildFrame(
 
   // Camera
   const aspect = width / height;
-  desc.camera = buildCamera(state, template, aspect, p);
-
-  // View extents for layout
-  const { vx, vy } = computeViewExtents(desc.camera, P, aspect, template);
+  const cameraState = { ...state, params: P };
+  const baseCamera = buildCamera(cameraState, template, aspect, p);
+  const baseExtents = computeViewExtents(baseCamera, P, aspect, template);
 
   // Deterministic RNG
   const seed = state.media.seed || 1;
   const rnd = deterministicRnd(seed);
 
-  // Env for template layout
+  // Shared environment for template camera and layout functions.
   const cardAspect = cardAspectForState(state, template);
   const h = (template.cardH || 0.8) * (numOr(P.size, 1) || 1);
   const w = h * cardAspect;
-
-  const E: any = {
+  const E: Env = {
     p,
     n,
     asp: aspect,
     w,
     h,
-    D: 1 / Math.tan(desc.camera.fov / 2),
-    vx,
-    vy,
+    D: 1 / Math.tan(baseCamera.fov / 2),
+    vx: baseExtents.vx,
+    vy: baseExtents.vy,
     rnd,
     ez: ease[(P.ease as keyof typeof ease) || 'inOutQuint'] || ease.inOutQuint,
     hold: numOr(P.hold, 0.5),
+    mb: n,
     m: n,
   };
 
-  // Template may provide its own camera (unused, but kept for future use)
-  // const c0 = template.camera ? template.camera(P, E) : {};
+  desc.camera = buildCamera(cameraState, template, aspect, p, E);
+  const { vx, vy } = computeViewExtents(desc.camera, P, aspect, template);
+  E.D = 1 / Math.tan(desc.camera.fov / 2);
+  E.vx = vx;
+  E.vy = vy;
 
   // Group matrix (pose/transform/pan)
   const G = groupMatrix(P, p);

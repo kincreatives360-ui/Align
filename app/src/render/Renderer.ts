@@ -292,14 +292,9 @@ export class Renderer {
   }
 
   /** Video faces used by this frame repaint in place when their video has a new frame. */
-  syncVideos(entries: FaceEntry[], cards: CardDesc[]): void {
+  syncVideos(blurred: Set<FaceEntry>): void {
     if (!this.live.size) return;
     const now = performance.now();
-
-    const blurred = new Set<FaceEntry>();
-    cards.forEach((c, i) => {
-      if (c.blur > 0.002) blurred.add(entries[i]);
-    });
 
     for (const e of this.live) {
       if (this.faces.get(e.k!) !== e) continue;
@@ -396,7 +391,19 @@ export class Renderer {
     // Resolve every card's face to GPU textures. `entries[i]` belongs to `desc.cards[i]`;
     // the descriptor itself is left untouched so it can be reused (e.g. for snapshots).
     const entries = desc.cards.map(c => this.face(c.face, c.face.aspect, c.face.res || 256));
-    this.syncVideos(entries, desc.cards);
+    const flareEntries = desc.flare?.a && desc.flare?.b
+      ? [
+          this.face(desc.flare.a, desc.flare.a.aspect, desc.flare.a.res || 256),
+          this.face(desc.flare.b, desc.flare.b.aspect, desc.flare.b.res || 256),
+        ] as [FaceEntry, FaceEntry]
+      : null;
+    const blurred = new Set<FaceEntry>();
+    desc.cards.forEach((card, i) => {
+      if (card.blur > 0.002) blurred.add(entries[i]);
+    });
+    if (flareEntries && desc.flare.u.uBlurO > 0.002) blurred.add(flareEntries[0]);
+    if (flareEntries && desc.flare.u.uBlurN > 0.002) blurred.add(flareEntries[1]);
+    this.syncVideos(blurred);
 
     const scene = this.target(out ? 'scene-' + W + 'x' + H : 'scene', W, H);
     gl.bindFramebuffer(gl.FRAMEBUFFER, scene.fbo);
@@ -430,8 +437,8 @@ export class Renderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    if (desc.flare && desc.flare.a?.tex && desc.flare.b?.tex) {
-      this.drawFlare(desc);
+    if (desc.flare && flareEntries) {
+      this.drawFlare(desc, flareEntries);
     } else {
       this.drawCards(desc, entries);
     }
@@ -565,8 +572,7 @@ export class Renderer {
     gl.bindVertexArray(null);
   }
 
-  drawFlare(desc: FrameDescriptor): void {
-    // The flare hand-off is not built yet; `buildFrame` never sets `desc.flare`.
+  drawFlare(desc: FrameDescriptor, faces: [FaceEntry, FaceEntry]): void {
     const gl = this.gl;
     const F = this.progs.flare;
     const f = desc.flare!;
@@ -574,8 +580,8 @@ export class Renderer {
     gl.bindVertexArray(this.full);
     const names = ['uTexA0', 'uTexA1', 'uTexA2', 'uTexA3', 'uTexB0', 'uTexB1', 'uTexB2', 'uTexB3'];
     for (let i = 0; i < 4; i++) {
-      this.bindTex(i, f.a.tex[i]);
-      this.bindTex(4 + i, f.b.tex[i]);
+      this.bindTex(i, faces[0].tex[i]);
+      this.bindTex(4 + i, faces[1].tex[i]);
     }
     names.forEach((n, i) => this.u(F, n, { i }));
     this.u(F, 'uRes', [desc.W, desc.H]);
