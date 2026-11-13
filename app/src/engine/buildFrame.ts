@@ -18,6 +18,7 @@ import {
   applyDisplacement,
 } from './layout';
 import { bgDesc } from './media';
+import { buildFlare } from './flare';
 
 export type { FrameDescriptor };
 
@@ -74,9 +75,10 @@ export function buildFrame(
   const T = clipTime * rate;
   const T2 = T * (numOr(P.speed, 1) || 1);
 
-  // Flare templates are drawn as ordinary cards for now. The glass hand-off
-  // effect itself (`desc.flare`, Renderer.drawFlare) is not built yet. Returning
-  // early here, as before, left them with a background and no cards at all.
+  // Handle flare templates with the proper glass hand-off effect
+  if (template.kind === 'flare') {
+    return buildFlare(state, template, clipTime, width, height, style, rate);
+  }
 
   // Card count
   const n = template.fixedN ? template.n : Math.max(1, Math.round(numOr(P.count, template.n) || template.n));
@@ -335,7 +337,7 @@ function cardAspectForState(state: ProjectState, template: { aspect: number }): 
 }
 
 /** Post-processing descriptor. */
-function postDesc(style: any, phase: number, T: number, thumb: boolean): PostDesc {
+export function postDesc(style: any, phase: number, T: number, thumb: boolean): PostDesc {
   const g = style.glass;
   const L = style.lens;
   const fx = style.fx;

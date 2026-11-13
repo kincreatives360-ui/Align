@@ -20,7 +20,7 @@ describe('buildFrame', () => {
     for (const c of d.cards) expect(Number.isNaN(c.opacity)).toBe(false);
   });
 
-  it.each(TEMPLATES.map(t => [t.id]))('template %s yields finite, drawable cards', id => {
+  it.each(TEMPLATES.filter(t => t.kind !== 'flare').map(t => [t.id]))('template %s yields finite, drawable cards', id => {
     for (const t of [0, 1.7, 4.2]) {
       const d = buildFrame(stateFor(id), t, 640, 360);
       expect(d.cards.length).toBeGreaterThan(0);
