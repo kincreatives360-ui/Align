@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>/* open in the browser's theme (or the one you picked) before anything paints */try{document.documentElement.dataset.theme=localStorage.getItem('ac-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create — AlignCanvas</title>
+<meta name="description" content="Turn your images into motion in seconds. 100+ animated templates (3D carousels, rings, stacks, liquid glass and blur), then export MP4, WebM, GIF or PNG. Free in the browser, and your images stay on your device.">
+<meta name="keywords" content="motion templates, image animation, 3D carousel, liquid glass, mockup video, MP4 export, GIF maker, product showcase video, portfolio animation">
+<meta name="application-name" content="AlignCanvas">
+<meta name="theme-color" content="#f4f4f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="create.html">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AlignCanvas">
+<meta property="og:url" content="https://aligncanvas.com/create">
+<meta property="og:title" content="AlignCanvas — motion templates for your images">
+<meta property="og:description" content="100+ animated templates with 3D, liquid glass and blur. Drop in your images and export MP4, WebM, GIF or PNG, all in the browser.">
+<meta property="og:image" content="https://aligncanvas.com/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="AlignCanvas motion template preview">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AlignCanvas — motion templates for your images">
+<meta name="twitter:description" content="100+ animated templates with 3D, liquid glass and blur. Export MP4, WebM, GIF or PNG in the browser.">
+<meta name="twitter:image" content="https://aligncanvas.com/og.jpg">
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="https://aligncanvas.com/favicon-32.png" sizes="32x32" type="image/png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="https://aligncanvas.com/favicon-32-dark.png" sizes="32x32" type="image/png" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="https://aligncanvas.com/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest.html">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "AlignCanvas",
+  "url": "https://aligncanvas.com/",
+  "image": "https://aligncanvas.com/og.jpg",
+  "description": "Browser-based motion design tool: 100+ animated templates with 3D, liquid glass and blur. Export MP4, WebM, GIF, PNG or image sequences.",
+  "applicationCategory": "DesignApplication",
+  "operatingSystem": "Any (Chrome, Edge, Safari)",
+  "browserRequirements": "Requires WebGL2. Video export requires WebCodecs.",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+  "featureList": ["100+ motion templates", "3D carousels, rings and stacks", "Liquid glass and blur effects", "MP4, WebM and GIF export", "PNG, JPEG and WebP stills", "Images stay on your device"]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="../fonts.googleapis.com/css2.hc16dp.html" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<h1 class="sr-only">AlignCanvas: motion templates with 3D, liquid glass and blur for your images</h1>
+<noscript>
+  <main style="max-width:640px;margin:48px auto;padding:0 16px;font:16px/1.6 Inter,system-ui,sans-serif">
+    <h2>AlignCanvas needs JavaScript</h2>
+    <p>AlignCanvas turns your images into motion. Pick one of 100+ animated templates (3D carousels, rings, stacks, liquid glass and blur), drop in your images and export MP4, WebM, GIF, PNG or an image sequence. Everything renders in your browser, so your images stay on your device.</p>
+    <p>Please enable JavaScript and use Chrome, Edge or a recent Safari.</p>
+  </main>
+</noscript>
+<div class="app">
+  <header class="top">
+    <a class="brand" href="https://aligncanvas.com/" aria-label="AlignCanvas home">
+      <img class="logo lt" src="brand/logo-on-light.svg" alt="AlignCanvas" width="1521" height="440">
+      <img class="logo dk" src="brand/logo-on-dark.svg" alt="" width="1521" height="440">
+      <span class="beta">Beta</span>
+    </a>
+    <div class="mid"><input id="projName" value="Untitled project" aria-label="Project name"><span class="savest" id="saveState" aria-live="polite"></span></div>
+    <button class="ib ghost" id="undo" title="Undo (⌘Z)"></button>
+    <button class="ib ghost" id="redo" title="Redo (⇧⌘Z)"></button>
+    <div class="seg2" id="theme"><button data-v="light" title="Light theme"></button><button data-v="dark" title="Dark theme"></button></div>
+    <button class="btn-primary" id="exportTop"></button>
+    <button class="ib ghost acct" id="account">Sign in</button>
+    <button class="ib ghost" id="help" title="Shortcuts">?</button>
+  </header>
+  <div class="body">
+    <nav class="panel rail" id="rail"></nav>
+    <aside class="panel" id="left"></aside>
+    <main class="stage">
+      <div class="toolbar" id="toolbar"></div>
+      <div class="view" id="view">
+        <div class="canvas-wrap" id="wrap"><canvas id="canvas"></canvas><div class="safe" id="safe"></div><div class="zones" id="zones" aria-hidden="true"><i class="zt"></i><i class="zb"></i><i class="zl"></i><i class="zr"></i></div></div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+      <button class="ib surprise" id="surprise" title="Surprise me (R)"></button>
+    </main>
+    <aside class="panel" id="right"></aside>
+  </div>
+</div>
+<input type="file" id="fileImgs" accept="image/*,video/*" multiple hidden>
+<input type="file" id="fileProj" accept=".json,application/json" hidden>
+<div class="toast" id="toast"></div>
+<div class="drop" id="drop">Drop images or videos to use them on the cards</div>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<script type="module" src="js/main.js"></script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="_vercel/insights/script.js"></script>
+<script type="module" src="js/analytics.js"></script>
+</body>
+</html>

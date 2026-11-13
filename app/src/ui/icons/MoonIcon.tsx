@@ -1,0 +1,9 @@
+import { IconBase, type IconProps } from './IconBase';
+
+export function MoonIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+    </IconBase>
+  );
+}

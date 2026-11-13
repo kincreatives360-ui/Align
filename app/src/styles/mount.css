@@ -1,0 +1,10 @@
+/* The React mount point must be full-height so the app grid can fill it. */
+#root {
+  height: 100%;
+}
+
+/* The reference stylesheet lays the app out directly on <body>; React puts a
+   single wrapper in between, so it inherits the body's box. */
+#root > .app {
+  height: 100%;
+}

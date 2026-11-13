@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "items": [
+    {"src": "photo-01.jpg", "thumb": "thumbs/photo-01.jpg", "name": "Window glow", "tags": ["blue", "dark", "minimal"], "w": 1080, "h": 1350},
+    {"src": "photo-02.jpg", "thumb": "thumbs/photo-02.jpg", "name": "Motion poster", "tags": ["poster", "type", "blue"], "w": 1080, "h": 1350},
+    {"src": "photo-03.jpg", "thumb": "thumbs/photo-03.jpg", "name": "Balanced stones", "tags": ["still life", "warm", "minimal"], "w": 1080, "h": 1350},
+    {"src": "photo-04.jpg", "thumb": "thumbs/photo-04.jpg", "name": "Red tree", "tags": ["nature", "poster", "type"], "w": 1080, "h": 1350},
+    {"src": "photo-05.jpg", "thumb": "thumbs/photo-05.jpg", "name": "Green leaf", "tags": ["nature", "green", "texture"], "w": 1080, "h": 1350},
+    {"src": "photo-06.jpg", "thumb": "thumbs/photo-06.jpg", "name": "Cyan wordmark", "tags": ["poster", "type", "dark"], "w": 1080, "h": 1350},
+    {"src": "photo-07.jpg", "thumb": "thumbs/photo-07.jpg", "name": "Paddle", "tags": ["product", "dark", "minimal"], "w": 1080, "h": 1350},
+    {"src": "photo-08.jpg", "thumb": "thumbs/photo-08.jpg", "name": "Red portrait", "tags": ["portrait", "red", "warm"], "w": 1080, "h": 1350},
+    {"src": "photo-09.jpg", "thumb": "thumbs/photo-09.jpg", "name": "Iridescent", "tags": ["poster", "gradient", "dark"], "w": 1080, "h": 1350},
+    {"src": "photo-10.jpg", "thumb": "thumbs/photo-10.jpg", "name": "Bag poster", "tags": ["poster", "type", "light"], "w": 1080, "h": 1350}
+  ]
+}
