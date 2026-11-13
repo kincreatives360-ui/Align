@@ -31,7 +31,7 @@ function restoreDraft(): void {
   });
 
   if (dropped > 0) {
-    setTimeout(() => toast('Restored your last session. Please re-add your images.', 4200), 400);
+    setTimeout(() => toast('Restored your last session. Please re-add your images.', 'info', 4200), 400);
   }
 }
 
