@@ -3,13 +3,19 @@ import { useProject } from '../../state/store';
 import { thumbFor } from '../../media/objectUrls';
 import { CloseIcon } from '../icons/CloseIcon';
 import { VideoPlayIcon } from '../icons/VideoPlayIcon';
+import { DragIcon } from '../icons/DragIcon';
 
 interface Props {
   item: MediaItem;
   index: number;
+  dragProps?: {
+    draggable: boolean;
+    onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+    onDragEnd: () => void;
+  };
 }
 
-export function MediaItemCard({ item, index }: Props) {
+export function MediaItemCard({ item, index, dragProps }: Props) {
   const remove = () => {
     useProject.getState().mutate(s => ({
       ...s,
@@ -20,10 +26,13 @@ export function MediaItemCard({ item, index }: Props) {
 
   const thumb = thumbFor(item);
 
+  const props = dragProps ? { ...dragProps, 'data-index': String(index) } : {};
+
   return (
     <div
       className={`mitem${thumb ? '' : ' missing'}`}
       title={`${index + 1}. ${item.name}`}
+      {...props}
     >
       {thumb ? (
         <img src={thumb} alt="" />
@@ -40,6 +49,12 @@ export function MediaItemCard({ item, index }: Props) {
       <button type="button" aria-label={`Remove ${item.name}`} onClick={remove}>
         <CloseIcon />
       </button>
+
+      {dragProps && (
+        <span className="drag-handle" aria-label="Drag to reorder">
+          <DragIcon />
+        </span>
+      )}
     </div>
   );
 }
