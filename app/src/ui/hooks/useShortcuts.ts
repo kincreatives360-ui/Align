@@ -39,6 +39,12 @@ export function useShortcuts(): void {
         return;
       }
 
+      if (e.key === '?') {
+        e.preventDefault();
+        useUi.getState().setModal('shortcuts');
+        return;
+      }
+
       if (typing || mod) return;
 
       switch (e.key) {

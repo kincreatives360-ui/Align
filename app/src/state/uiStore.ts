@@ -21,6 +21,11 @@ interface UiStore {
   openCats: Record<string, boolean>;
   /** Control sections that the user has collapsed. */
   closedSections: Record<string, boolean>;
+  /** Currently open modal, if any. */
+  modal: string | null;
+  /** Modals to open/close. */
+  setModal: (modal: string | null) => void;
+  closeModal: () => void;
 
   setRail: (rail: UiStore['rail']) => void;
   setLeftTab: (tab: UiStore['leftTab']) => void;
@@ -39,6 +44,7 @@ export const useUi = create<UiStore>(set => ({
   search: '',
   openCats: {},
   closedSections: {},
+  modal: null,
 
   setRail: rail => set({ rail }),
   setLeftTab: leftTab => set({ leftTab }),
@@ -49,6 +55,8 @@ export const useUi = create<UiStore>(set => ({
     set(s => ({ openCats: { ...s.openCats, [id]: !s.openCats[id] } })),
   toggleSection: id =>
     set(s => ({ closedSections: { ...s.closedSections, [id]: !s.closedSections[id] } })),
+  setModal: modal => set({ modal }),
+  closeModal: () => set({ modal: null }),
 }));
 
 /** Sections are open unless the user has closed them. */

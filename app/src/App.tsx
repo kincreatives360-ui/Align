@@ -7,6 +7,7 @@ import { FileInputs } from './ui/shell/FileInputs';
 import { Toast } from './ui/shell/Toast';
 import { DropOverlay } from './ui/shell/DropOverlay';
 import { ModalHost } from './ui/shell/ModalHost';
+import { ShortcutsModal } from './ui/shell/ShortcutsModal';
 import { useProjectState } from './ui/hooks/useProject';
 import { useTheme } from './ui/hooks/useTheme';
 import { useShortcuts } from './ui/hooks/useShortcuts';
@@ -37,6 +38,7 @@ export default function App() {
       <Toast />
       <DropOverlay />
       <ModalHost />
+      <ShortcutsModal />
     </div>
   );
 }
