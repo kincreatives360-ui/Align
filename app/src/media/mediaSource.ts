@@ -1,6 +1,7 @@
 import type { FaceRef, MediaItem, MediaState } from '../state/types';
 import { mulberry } from '../engine/math';
 import { getUrl } from './objectUrls';
+import { getVideo, setVideosPlaying as setVideoPlaying, seekVideo } from './video';
 
 /**
  * Where the renderer gets pixels from.
@@ -11,20 +12,14 @@ import { getUrl } from './objectUrls';
  * and tells the canvas to redraw when something finishes loading.
  */
 
-interface VideoEl extends HTMLVideoElement {
-  _ver?: number;
-  _ft?: number;
-}
-
 interface Entry {
-  el: HTMLImageElement | VideoEl;
+  el: HTMLImageElement | HTMLVideoElement;
   url: string;
   ready: boolean;
 }
 
 const cache = new Map<string, Entry>();
 let onChange: () => void = () => {};
-let wantPlaying = false;
 
 /** The canvas registers here so it redraws when an image finishes loading or a video has a new frame. */
 export function setMediaChangeListener(fn: () => void): void {
@@ -51,41 +46,10 @@ function loadImage(url: string, cors: boolean): Entry {
   return entry;
 }
 
-function loadVideo(url: string, cors: boolean): Entry {
-  const el = document.createElement('video') as VideoEl;
-  const entry: Entry = { el, url, ready: false };
-  if (cors) el.crossOrigin = 'anonymous';
-  el.muted = true;
-  el.loop = true;
-  el.playsInline = true;
-  el.preload = 'auto';
-  el._ver = 0;
-  el._ft = 0;
-
-  const bump = () => {
-    el._ver = (el._ver ?? 0) + 1;
-    el._ft = performance.now();
-    onChange();
-  };
-
-  el.onloadeddata = () => {
-    entry.ready = true;
-    // `requestVideoFrameCallback` is missing in older Safari/Firefox, hence the loose type.
-    const rvfc = el as unknown as { requestVideoFrameCallback?: (cb: () => void) => number };
-    if (typeof rvfc.requestVideoFrameCallback === 'function') {
-      const tick = () => {
-        bump();
-        rvfc.requestVideoFrameCallback!(tick);
-      };
-      rvfc.requestVideoFrameCallback(tick);
-    } else {
-      el.ontimeupdate = bump;
-    }
-    el.onseeked = bump;
-    if (wantPlaying) void el.play().catch(() => {});
-    onChange();
-  };
-  el.src = url;
+function loadVideo(item: MediaItem): Entry {
+  const el = getVideo(item);
+  if (!el) throw new Error('Video not loaded');
+  const entry: Entry = { el, url: item.id, ready: !!el.ready };
   return entry;
 }
 
@@ -102,7 +66,7 @@ export function elementFor(item: MediaItem): HTMLImageElement | HTMLVideoElement
   }
   if (!entry) {
     const cors = !!item.libraryPath;
-    entry = item.kind === 'video' ? loadVideo(url, cors) : loadImage(url, cors);
+    entry = item.kind === 'video' ? loadVideo(item) : loadImage(url, cors);
     cache.set(item.id, entry);
   }
   return entry.ready ? entry.el : null;
@@ -125,12 +89,12 @@ export function dropMedia(id: string): void {
 
 /** Videos only play while the timeline plays, so a paused project costs nothing. */
 export function setVideosPlaying(playing: boolean): void {
-  wantPlaying = playing;
-  for (const entry of cache.values()) {
-    if (!(entry.el instanceof HTMLVideoElement) || !entry.ready) continue;
-    if (playing) void entry.el.play().catch(() => {});
-    else entry.el.pause();
-  }
+  setVideoPlaying(playing);
+}
+
+/** Seek a video to an exact time for export. */
+export function seekVideoForExport(item: MediaItem, time: number): Promise<void> {
+  return seekVideo(item, time);
 }
 
 let phCanvas: HTMLCanvasElement | null = null;

@@ -2,6 +2,7 @@ import type { MediaItem } from '../state/types';
 import { useProject } from '../state/store';
 import { register } from '../state/mediaRegistry';
 import { putUrl } from './objectUrls';
+import { putMedia } from './store';
 
 const IMAGE = /^image\//;
 const VIDEO = /^video\//;
@@ -52,6 +53,20 @@ export async function addFiles(files: Iterable<File>): Promise<number> {
     try {
       const { w, h, duration } = await measure(file, kind);
       const id = nextId();
+
+      // Store blob in IndexedDB for persistence
+      await putMedia({
+        id,
+        kind,
+        name: file.name,
+        width: w,
+        height: h,
+        duration,
+        blob: file,
+        createdAt: Date.now(),
+      });
+
+      // Also create object URL for immediate use
       putUrl(id, URL.createObjectURL(file));
 
       const item: MediaItem = {
