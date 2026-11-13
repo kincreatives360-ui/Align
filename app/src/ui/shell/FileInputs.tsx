@@ -19,9 +19,11 @@ export function FileInputs() {
         multiple
         hidden
         onChange={async e => {
-          const files = e.target.files;
+          // Copy BEFORE clearing the input. `e.target.files` is a live FileList, so
+          // resetting `value` empties it and `addFiles` was always handed nothing.
+          const files = Array.from(e.target.files ?? []);
           e.target.value = '';
-          if (!files?.length) return;
+          if (!files.length) return;
           const added = await addFiles(files);
           if (added === 0) toast('Those files could not be read');
           else toast(`Added ${added} file${added === 1 ? '' : 's'}`);

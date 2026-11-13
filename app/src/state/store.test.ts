@@ -91,3 +91,18 @@ describe('store — set and commit', () => {
     expect(useProject.getState().state.media.images.map(m => m.id)).toEqual(['a']);
   });
 });
+
+describe('store — replace', () => {
+  it('is undoable (opening a file or starting a new project must enable Undo)', () => {
+    useProject.setState({ state: newProject(), canUndo: false, canRedo: false, rev: 0 });
+    _history().seed(useProject.getState().state);
+    useProject.setState({ canUndo: false, canRedo: false });
+
+    const next = { ...newProject(), name: 'Opened file' };
+    useProject.getState().replace(next);
+
+    expect(useProject.getState().canUndo).toBe(true);
+    useProject.getState().undo();
+    expect(useProject.getState().state.name).toBe('Untitled project');
+  });
+});

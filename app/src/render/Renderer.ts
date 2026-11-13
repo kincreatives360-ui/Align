@@ -2,6 +2,7 @@ import {
   VS_FULL, FS_BG, VS_CARD, FS_CARD, FS_SHADOW, FS_FLARE, FS_POST, VS_SIDE, FS_SIDE
 } from './shaders';
 import { mat4, lookAt } from '../engine/math';
+import { faceSize, paintFace, faceLayers } from './faces';
 import type { FrameDescriptor, CardDesc, FaceRef, FaceEntry } from '../state/types';
 
 const VIDEO_MAX = 1024;
@@ -10,6 +11,14 @@ const VIDEO_BLUR_MS = 90;
 interface VideoElement extends HTMLVideoElement {
   _ver?: number;
   _ft?: number;
+}
+
+interface Program {
+  p: WebGLProgram;
+  /** Cached uniform locations (null = the shader optimised that uniform away). */
+  loc: Record<string, WebGLUniformLocation | null>;
+  /** GLSL type of each active uniform, so `u()` can pick uniform1i vs uniform1f. */
+  ty: Record<string, number>;
 }
 
 interface FramebufferEntry {
@@ -23,7 +32,9 @@ export class Renderer {
   canvas: HTMLCanvasElement;
   gl: WebGL2RenderingContext;
   aniso: [number, number] | null;
-  progs: Record<string, { p: WebGLProgram; loc: Record<string, WebGLUniformLocation> }>;
+  progs: Record<string, Program>;
+  maxTex: number;
+  buffers: WebGLBuffer[];
   full: WebGLVertexArrayObject;
   mesh: WebGLVertexArrayObject;
   meshCount: number;
@@ -47,6 +58,8 @@ export class Renderer {
     });
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
+    this.maxTex = (gl.getParameter(gl.MAX_TEXTURE_SIZE) as number) || 2048;
+    this.buffers = [];
 
     // Anisotropic filtering
     const af = gl.getExtension('EXT_texture_filter_anisotropic');
@@ -68,6 +81,7 @@ export class Renderer {
     this.full = gl.createVertexArray()!;
     gl.bindVertexArray(this.full);
     const fb = gl.createBuffer()!;
+    this.buffers.push(fb);
     gl.bindBuffer(gl.ARRAY_BUFFER, fb);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     for (const p of [this.progs.bg, this.progs.flare, this.progs.post]) {
@@ -96,12 +110,14 @@ export class Renderer {
     this.mesh = gl.createVertexArray()!;
     gl.bindVertexArray(this.mesh);
     const vb = gl.createBuffer()!;
+    this.buffers.push(vb);
     gl.bindBuffer(gl.ARRAY_BUFFER, vb);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     for (const p of [this.progs.card, this.progs.shadow]) gl.bindAttribLocation(p.p, 0, 'aUV');
     const ib = gl.createBuffer()!;
+    this.buffers.push(ib);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
 
@@ -113,6 +129,7 @@ export class Renderer {
     this.side = gl.createVertexArray()!;
     gl.bindVertexArray(this.side);
     const sb = gl.createBuffer()!;
+    this.buffers.push(sb);
     gl.bindBuffer(gl.ARRAY_BUFFER, sb);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sv), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
@@ -134,7 +151,7 @@ export class Renderer {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
   }
 
-  program(vs: string, fs: string): { p: WebGLProgram; loc: Record<string, WebGLUniformLocation> } {
+  program(vs: string, fs: string): Program {
     const gl = this.gl;
     const sh = (t: number, src: string) => {
       const s = gl.createShader(t)!;
@@ -151,20 +168,48 @@ export class Renderer {
     gl.bindAttribLocation(p, 0, vs.includes('aUV') ? 'aUV' : 'aPos');
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)!);
-    return { p, loc: {} };
+
+    const ty: Record<string, number> = {};
+    const count = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS) as number;
+    for (let i = 0; i < count; i++) {
+      const info = gl.getActiveUniform(p, i);
+      if (info) ty[info.name.replace(/\[0\]$/, '')] = info.type;
+    }
+    return { p, loc: {}, ty };
   }
 
-  u(prog: { p: WebGLProgram; loc: Record<string, WebGLUniformLocation> }, name: string, v: any): void {
+  /**
+   * Set a uniform. Numbers go to uniform1i when the shader declares an int, bool or
+   * sampler (calling uniform1f on an int uniform is a GL error that is silently
+   * ignored, which is how `uLensMode` never took effect), otherwise to uniform1f.
+   */
+  u(prog: Program, name: string, v: unknown): void {
     const gl = this.gl;
-    let l = prog.loc[name];
-    if (l === undefined) l = prog.loc[name] = gl.getUniformLocation(prog.p, name)!;
+    if (v === undefined || v === null) return;
+    if (!(name in prog.loc)) prog.loc[name] = gl.getUniformLocation(prog.p, name);
+    const l = prog.loc[name];
     if (l === null) return;
-    if (typeof v === 'number') gl.uniform1f(l, v);
-    else if (v && v.i !== undefined) gl.uniform1i(l, v.i);
-    else if (v.length === 16) gl.uniformMatrix4fv(l, false, v);
-    else if (v.length === 2) gl.uniform2fv(l, v);
-    else if (v.length === 3) gl.uniform3fv(l, v);
-    else if (v.length === 4) gl.uniform4fv(l, v);
+
+    if (typeof v === 'number') {
+      const t = prog.ty[name];
+      if (t === gl.INT || t === gl.BOOL || t === gl.SAMPLER_2D) gl.uniform1i(l, Math.round(v));
+      else gl.uniform1f(l, v);
+      return;
+    }
+    if (typeof v === 'boolean') {
+      gl.uniform1i(l, v ? 1 : 0);
+      return;
+    }
+    const o = v as { i?: number; length?: number };
+    if (o.i !== undefined) {
+      gl.uniform1i(l, o.i);
+      return;
+    }
+    const arr = v as Float32Array | number[];
+    if (arr.length === 16) gl.uniformMatrix4fv(l, false, arr);
+    else if (arr.length === 2) gl.uniform2fv(l, arr);
+    else if (arr.length === 3) gl.uniform3fv(l, arr);
+    else if (arr.length === 4) gl.uniform4fv(l, arr);
   }
 
   texture(): WebGLTexture {
@@ -190,87 +235,88 @@ export class Renderer {
     }
   }
 
-  // Face entry interface
-  face(item: FaceRef, key: string, aspect: number, res: number): FaceEntry {
+  /**
+   * The GPU textures for a card face, built once and cached.
+   *
+   * Paints the media onto a canvas at the card's aspect, uploads it as the sharp
+   * texture (with mipmaps), then uploads three blurred copies for depth of field.
+   * The old version uploaded a blank placeholder and wrote one texture past the end
+   * of the 4-element array.
+   */
+  face(item: FaceRef, aspect: number, res: number): FaceEntry {
     const vid = item.kind === 'video';
     if (vid) {
       const video = item.img as VideoElement;
       res = Math.min(res, VIDEO_MAX, Math.max(256, video.videoWidth || 0, video.videoHeight || 0));
     }
-    const k = `${key}|${aspect.toFixed(3)}|${res}`;
-    let e = this.faces.get(k);
-    if (e) {
-      e.used = performance.now();
-      if (vid) this.live.add(e);
-      return e;
+    res = Math.max(2, Math.min(res, this.maxTex));
+
+    const k = `${item.key}|${aspect.toFixed(3)}|${res}`;
+    const hit = this.faces.get(k);
+    if (hit) {
+      hit.used = performance.now();
+      if (vid) this.live.add(hit);
+      return hit;
     }
-    // For now, create a placeholder - real implementation needs renderFace from faces.ts
-    // This will be replaced when we implement media ingestion
-    const placeholderCanvas = document.createElement('canvas');
-    placeholderCanvas.width = res;
-    placeholderCanvas.height = res;
-    const faceRef: FaceRef = { key: '', aspect, res, kind: 'image', img: placeholderCanvas };
-    const faceEntry: FaceEntry = {
-      tex: [this.texture(), this.texture(), this.texture(), this.texture()],
-      w: res,
-      h: res,
+
+    const { w, h } = faceSize(aspect, res);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    paintFace(canvas, item);
+
+    const tex = [this.texture(), this.texture(), this.texture(), this.texture()];
+    this.upload(tex[0], canvas, true);
+    faceLayers(canvas).forEach((layer, i) => this.upload(tex[i + 1], layer, false));
+
+    const entry: FaceEntry = {
+      tex,
+      w,
+      h,
       used: performance.now(),
-      face: faceRef,
+      face: { key: item.key, aspect, res, kind: 'image', img: canvas },
       info: { sharp: true },
     };
-    this.upload(faceEntry.tex[0], placeholderCanvas, true);
-    for (let i = 0; i < 4; i++) {
-      this.upload(faceEntry.tex[i + 1], placeholderCanvas, false);
-    }
     if (vid) {
-      faceEntry.k = k;
-      faceEntry.item = item;
       const video = item.img as VideoElement;
-      faceEntry.ver = video._ver;
-      faceEntry.vt = video.currentTime;
-      faceEntry.blurT = performance.now();
-      this.live.add(faceEntry);
+      entry.k = k;
+      entry.item = item;
+      entry.ver = video._ver;
+      entry.vt = video.currentTime;
+      entry.blurT = performance.now();
+      this.live.add(entry);
     }
-    this.faces.set(k, faceEntry);
+    this.faces.set(k, entry);
     if (this.faces.size > 160) this.evict();
-    return faceEntry;
+    return entry;
   }
 
-  // Video faces used by this frame repaint in place when their video has a new frame
-  syncVideos(desc: FrameDescriptor): void {
+  /** Video faces used by this frame repaint in place when their video has a new frame. */
+  syncVideos(entries: FaceEntry[], cards: CardDesc[]): void {
     if (!this.live.size) return;
-    const blurred = new Set<FaceEntry>();
     const now = performance.now();
-    if (desc.flare) {
-      // flare not implemented yet
-    }
-    for (const c of desc.cards) {
-      if (c.blur > 0.002 && c.face) {
-        // Find the cached face entry for this card's face
-        const faceRef: any = c.face;
-        const faceKey = faceRef.key ?? faceRef.face?.key;
-        for (const entry of this.faces.values()) {
-          if (entry.face.key === faceKey) {
-            blurred.add(entry);
-            break;
-          }
-        }
-      }
-    }
+
+    const blurred = new Set<FaceEntry>();
+    cards.forEach((c, i) => {
+      if (c.blur > 0.002) blurred.add(entries[i]);
+    });
+
     for (const e of this.live) {
       if (this.faces.get(e.k!) !== e) continue;
-      const item = e.item!;
-      const v = item.img as VideoElement;
+      const src = e.item!;
+      const v = src.img as VideoElement;
       const fresh = v._ver !== e.ver || (!v.paused && now - (v._ft || 0) > 250 && v.currentTime !== e.vt);
       if (fresh) {
         e.ver = v._ver;
         e.vt = v.currentTime;
-        // paintFace(e.face, e.item); // needs faces.ts
+        paintFace(e.face.img as HTMLCanvasElement, src);
         this.update(e.tex[0], e.face.img, true);
         e.stale = true;
       }
+      // The blurred copies are expensive, so refresh them at most every VIDEO_BLUR_MS
+      // and only for faces that are actually drawn blurred this frame.
       if (e.stale && blurred.has(e) && (this.exact || now - (e.blurT ?? 0) >= VIDEO_BLUR_MS)) {
-        // faceLayers(e.face).forEach((l, i) => this.upload(e.tex[i + 1], l, false));
+        faceLayers(e.face.img as HTMLCanvasElement).forEach((layer, i) => this.upload(e.tex[i + 1], layer, false));
         e.stale = false;
         e.blurT = now;
       }
@@ -341,35 +387,16 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, tex);
   }
 
-  /** Get the WebGL textures for a card's face (assumes FaceRef already converted to FaceEntry). */
-  getFaceTextures(card: any): WebGLTexture[] {
-    const face = card.face;
-    if (!face) return [this.white, this.white, this.white, this.white];
-    if ('tex' in face && face.tex && face.tex.length === 4) {
-      return face.tex as WebGLTexture[];
-    }
-    // Fallback - convert on demand
-    const faceRef = face;
-    const faceEntry = this.face(faceRef, faceRef.key || 'default', faceRef.aspect, faceRef.res || 256);
-    card.face = faceEntry;
-    return faceEntry.tex;
-  }
-
   /** Main render entry point. */
   render(desc: FrameDescriptor, out: FramebufferEntry | null = null): void {
     const gl = this.gl;
+    if (gl.isContextLost()) return;
     const { W, H } = desc;
-    this.syncVideos(desc);
 
-    // Convert FaceRefs to FaceEntries with WebGL textures
-    for (const card of desc.cards) {
-      if (card.face && 'img' in card.face) {
-        const faceRef = card.face as any; // FaceRef
-        const faceEntry = this.face(faceRef, faceRef.key || 'default', faceRef.aspect, faceRef.res || 256);
-        // Replace the FaceRef with the FaceEntry
-        (card as any).face = faceEntry;
-      }
-    }
+    // Resolve every card's face to GPU textures. `entries[i]` belongs to `desc.cards[i]`;
+    // the descriptor itself is left untouched so it can be reused (e.g. for snapshots).
+    const entries = desc.cards.map(c => this.face(c.face, c.face.aspect, c.face.res || 256));
+    this.syncVideos(entries, desc.cards);
 
     const scene = this.target(out ? 'scene-' + W + 'x' + H : 'scene', W, H);
     gl.bindFramebuffer(gl.FRAMEBUFFER, scene.fbo);
@@ -403,10 +430,10 @@ export class Renderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    if (desc.flare) {
+    if (desc.flare && desc.flare.a?.tex && desc.flare.b?.tex) {
       this.drawFlare(desc);
     } else {
-      this.drawCards(desc);
+      this.drawCards(desc, entries);
     }
 
     // Build mip chain for post-processing
@@ -434,7 +461,7 @@ export class Renderer {
     gl.bindVertexArray(null);
   }
 
-  drawCards(desc: FrameDescriptor): void {
+  drawCards(desc: FrameDescriptor, entries: FaceEntry[]): void {
     const gl = this.gl;
     const { W, H } = desc;
     const cam = desc.camera;
@@ -444,11 +471,12 @@ export class Renderer {
 
     // Depth-sort back to front
     const list = desc.cards
-      .filter((c: CardDesc) => c.opacity > 0.002)
-      .map((c: CardDesc) => {
+      .map((c: CardDesc, i: number) => ({ c, i }))
+      .filter(({ c }) => c.opacity > 0.002)
+      .map(({ c, i }) => {
         const m = c.m || mat4.model(c.x, c.y, c.z, c.rx, c.ry, c.rz, c.sx, c.sy);
         const w = mat4.transform(view, c.x, c.y, c.z);
-        return { c, m, depth: w[2] + (c.zBias || 0) };
+        return { c, i, m, depth: w[2] + (c.zBias || 0) };
       })
       .sort((a, b) => a.depth - b.depth);
 
@@ -458,7 +486,7 @@ export class Renderer {
     const sh = desc.shadow;
 
     gl.bindVertexArray(this.mesh);
-    for (const { c, m } of list) {
+    for (const { c, i, m } of list) {
       // Shadow
       if (sh && sh.on && sh.alpha > 0) {
         gl.useProgram(S.p);
@@ -502,7 +530,7 @@ export class Renderer {
 
       // Card face
       gl.useProgram(C.p);
-      const textures = this.getFaceTextures(c);
+      const textures = entries[i].tex;
       for (let i = 0; i < 4; i++) {
         this.bindTex(i, textures[i]);
         this.u(C, 'uT' + i, { i });
@@ -538,7 +566,7 @@ export class Renderer {
   }
 
   drawFlare(desc: FrameDescriptor): void {
-    // Placeholder - flare template not fully implemented yet
+    // The flare hand-off is not built yet; `buildFrame` never sets `desc.flare`.
     const gl = this.gl;
     const F = this.progs.flare;
     const f = desc.flare!;
@@ -581,15 +609,35 @@ export class Renderer {
     return img;
   }
 
+  /** Free every GPU object this renderer made. */
   dispose(): void {
     const gl = this.gl;
     this.faces.forEach(e => e.tex.forEach(t => gl.deleteTexture(t)));
     this.faces.clear();
-    this.targets.forEach(t => { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fbo); });
+    this.live.clear();
+    this.targets.forEach(t => {
+      gl.deleteTexture(t.tex);
+      gl.deleteFramebuffer(t.fbo);
+    });
     this.targets.clear();
+    gl.deleteTexture(this.label);
+    gl.deleteTexture(this.white);
+    this.buffers.forEach(b => gl.deleteBuffer(b));
+    this.buffers = [];
     gl.deleteVertexArray(this.full);
     gl.deleteVertexArray(this.mesh);
     gl.deleteVertexArray(this.side);
     Object.values(this.progs).forEach(p => gl.deleteProgram(p.p));
+  }
+
+  /**
+   * Forget everything without touching the GL context. Used after a context loss,
+   * when every object is already gone and deleting them would only raise errors.
+   */
+  abandon(): void {
+    this.faces.clear();
+    this.live.clear();
+    this.targets.clear();
+    this.buffers = [];
   }
 }

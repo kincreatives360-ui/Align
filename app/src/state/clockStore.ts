@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useProject } from './store';
 
 /**
  * The playhead.
@@ -21,14 +22,36 @@ interface ClockStore {
   restart: () => void;
 }
 
+function markDirty() {
+  useProject.getState().markDirty();
+}
+
 export const useClock = create<ClockStore>((set, get) => ({
   t: 0,
   playing: false,
 
-  advance: dt => set({ t: get().t + dt }),
-  seek: t => set({ t: Math.max(0, t) }),
-  toggle: () => set({ playing: !get().playing }),
-  play: () => set({ playing: true }),
-  pause: () => set({ playing: false }),
-  restart: () => set({ t: 0 }),
+  advance: dt => {
+    set({ t: get().t + dt });
+    markDirty();
+  },
+  seek: t => {
+    set({ t: Math.max(0, t) });
+    markDirty();
+  },
+  toggle: () => {
+    set({ playing: !get().playing });
+    markDirty();
+  },
+  play: () => {
+    set({ playing: true });
+    markDirty();
+  },
+  pause: () => {
+    set({ playing: false });
+    markDirty();
+  },
+  restart: () => {
+    set({ t: 0 });
+    markDirty();
+  },
 }));

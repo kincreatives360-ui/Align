@@ -5,6 +5,14 @@
 import type { ProjectState } from '../state/types';
 import { byId } from '../templates/registry';
 
+/** Safe number with fallback: Number(x) ?? def doesn't work because Number(undefined) is NaN.
+ * Also handles null/undefined/empty string -> NaN so it falls back. */
+export function numOr(v: unknown, def: number): number {
+  if (v === null || v === undefined || v === '') return def;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : def;
+}
+
 /** Get the clip duration in seconds. */
 export function clipLength(state: ProjectState): number {
   const t = byId(state.templateId);
@@ -26,24 +34,32 @@ export function clipInfo(state: ProjectState): { loop: number; clip: number; rat
 }
 
 /** Return the template's base duration in seconds. */
-function durationRef(t: { dur?: number; step?: boolean; perCard?: number; fixedN?: boolean; n: number }, P: Record<string, any>): number {
+export function durationRef(t: { dur?: number; step?: boolean; perCard?: number; fixedN?: boolean; n: number }, P: Record<string, any>): number {
   if (!t) return 10;
   if (t.step) {
-    const n = t.fixedN ? t.n : (P.count as number ?? t.n);
-    const per = t.perCard ?? 1.4;
+    const n = t.fixedN ? t.n : (numOr(P.count, t.n) || t.n);
+    const per = numOr(t.perCard, 1.4);
     return per * n;
   }
-  return t.dur ?? 10;
+  return numOr(t.dur, 10);
 }
 
 /** Wrap `t` into [0, clipLength). */
 export function wrapTime(t: number, len: number): number {
+  if (len <= 0) return 0;
   return ((t % len) + len) % len;
 }
 
 /** Format `t` as mm:ss.t with the clip length `len` for display. */
 export function formatTime(t: number, _len: number): string {
-  const minutes = Math.floor(t / 60);
-  const seconds = t % 60;
-  return `${minutes}:${seconds.toFixed(1)}`;
+  // Clamp to avoid 0:60.0 edge case
+  const clamped = Math.min(t, _len - 0.05);
+  const minutes = Math.floor(clamped / 60);
+  const seconds = clamped % 60;
+  const formattedSeconds = seconds.toFixed(1).padStart(4, '0');
+  // Handle edge case where seconds rounds to 60.0
+  if (formattedSeconds === '60.0') {
+    return `${minutes + 1}:00.0`;
+  }
+  return `${minutes}:${formattedSeconds}`;
 }

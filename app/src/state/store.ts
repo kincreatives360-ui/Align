@@ -83,6 +83,10 @@ export const useProject = create<ProjectStore>((set, get) => ({
   },
 
   replace: next => {
+    // Structural change: this must be undoable, so push the snapshot BEFORE
+    // reading canUndo/canRedo (the old version read them first and so never
+    // enabled the Undo button after opening a file or starting a new project).
+    history.push(next);
     set({ state: next, rev: get().rev + 1, dirty: true, canUndo: history.canUndo, canRedo: history.canRedo });
     persist(next);
   },

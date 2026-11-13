@@ -30,9 +30,9 @@ export function groupMatrix(P: P, p: number): Float32Array | null {
 
 /** Compute bend values for a card. */
 export function bendFor(P: P, L: CardPose, p: number, k: number): { bend: number; bendY: number } {
-  const flex = num(P.flex) ? num(P.flex) * Math.sin(TAU * (Math.round(num(P.flexSpeed)) * p + k * (num(P.flexOffset) ?? 0.25))) : 0;
+  const flex = num(P.flex) ? num(P.flex) * Math.sin(TAU * (Math.round(num(P.flexSpeed)) * p + k * (num(P.flexOffset, 0.25)))) : 0;
   const extra = num(P.bend) + flex;
-  const ax = String(P.bendAxis) || 'h';
+  const ax = typeof P.bendAxis === 'string' && P.bendAxis ? P.bendAxis : 'h';
   return {
     bend: (num(L.bend) || 0) + (ax === 'v' ? 0 : extra),
     bendY: (num(L.bendY) || 0) + (ax === 'h' ? 0 : extra),

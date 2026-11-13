@@ -513,8 +513,10 @@ export function cardFlipLayout(i: number, P: P, E: Env): CardPose {
   const u = stepU(E.p, E.n, E.hold, E.ez);
   const k = Math.floor(u);
   const t = u - k;
-  const cur = rel(k, u, E.n);
-  const nxt = rel(k + 1, u, E.n);
+  // Card INDICES, not relative offsets: `rel()` returns a distance like -0.6, which
+  // never equals an integer card index, so the flip showed one card at best.
+  const cur = ((k % E.n) + E.n) % E.n;
+  const nxt = (((k + 1) % E.n) + E.n) % E.n;
   const sp = 1 + 2 * Math.round(num(P.extraSpins));
   
   let ang = 0, o = 0;

@@ -1,6 +1,8 @@
-import type { ProjectState, FrameBackground, CameraDesc, CardDesc, ShadowDesc, PostDesc } from '../state/types';
+import type { ProjectState, FrameDescriptor, PostDesc } from '../state/types';
 import { byId } from '../templates/registry';
-import { clipInfo, wrapTime } from './timing';
+import { defaults } from '../templates/params';
+import { clipInfo, wrapTime, durationRef, numOr } from './timing';
+import { faceFor, mediaPicker } from '../media/mediaSource';
 import { buildCamera, computeViewExtents } from './camera';
 import { deterministicRnd } from './random';
 import { mat4, TAU, D2R, wrap, clamp01, ease, hexToRgb } from './math';
@@ -17,16 +19,27 @@ import {
 } from './layout';
 import { bgDesc } from './media';
 
-/** The complete frame descriptor returned by buildFrame. */
-export interface FrameDescriptor {
-  W: number;
-  H: number;
-  bg: FrameBackground | null;
-  camera: CameraDesc;
-  cards: CardDesc[];
-  shadow: ShadowDesc | null;
-  flare: any | null;
-  post: PostDesc;
+export type { FrameDescriptor };
+
+/** Texture sizes we snap to, so a card does not rebuild its textures on every tiny size change. */
+const RES_STEPS = [256, 384, 512, 768, 1024, 1536, 2048];
+function quantRes(px: number): number {
+  for (const r of RES_STEPS) if (px <= r) return r;
+  return RES_STEPS[RES_STEPS.length - 1];
+}
+
+/**
+ * The template's own defaults underneath the project's values, with the template's
+ * fixed `mods` on top. A new project starts with `params: {}`, so without this every
+ * param a template reads was undefined. The card count is left to `template.n`.
+ */
+function resolveParams(
+  template: ReturnType<typeof byId>,
+  params: ProjectState['params'],
+): ProjectState['params'] {
+  const base = defaults(template);
+  delete base.count;
+  return { ...base, ...params, ...(template.mods ?? {}) };
 }
 
 /** Build a frame descriptor from project state and time. */
@@ -38,7 +51,7 @@ export function buildFrame(
   opts: { rate?: number; thumb?: boolean; resBoost?: number } = {}
 ): FrameDescriptor {
   const template = byId(state.templateId);
-  const P = state.params;
+  const P = resolveParams(template, state.params);
   const style = state.style;
 
   const desc: FrameDescriptor = {
@@ -59,17 +72,14 @@ export function buildFrame(
   // T is clip time; motion runs at seamless-loop rate on top of template speed
   const Tc = clipTime;
   const T = clipTime * rate;
-  const T2 = T * (Number(P.speed) || 1);
+  const T2 = T * (numOr(P.speed, 1) || 1);
 
-  // Handle flare template separately (placeholder for now)
-  if (template.kind === 'flare') {
-    desc.bg = bgDesc(style, 0);
-    desc.post = postDesc(style, 0, Tc, opts.thumb ?? false);
-    return desc;
-  }
+  // Flare templates are drawn as ordinary cards for now. The glass hand-off
+  // effect itself (`desc.flare`, Renderer.drawFlare) is not built yet. Returning
+  // early here, as before, left them with a background and no cards at all.
 
   // Card count
-  const n = template.fixedN ? template.n : Math.max(1, Math.round(Number(P.count) || template.n));
+  const n = template.fixedN ? template.n : Math.max(1, Math.round(numOr(P.count, template.n) || template.n));
 
   // Loop phase
   let p = wrapTime(T2 / durationRef(template, P), 1);
@@ -77,8 +87,8 @@ export function buildFrame(
 
   // Easing > Stepped: continuous templates can hold on each step
   if (!template.step && P.motion === 'stepped') {
-    const k = Math.round(Number(P.steps)) || n;
-    const hold = Number(P.hold) ?? 0.5;
+    const k = Math.round(numOr(P.steps, n)) || n;
+    const hold = numOr(P.hold, 0.5);
     const ez = ease[(P.ease as keyof typeof ease) || 'inOutQuint'] || ease.inOutQuint;
     const c = p * k;
     const f = c - Math.floor(c);
@@ -101,7 +111,7 @@ export function buildFrame(
 
   // Env for template layout
   const cardAspect = cardAspectForState(state, template);
-  const h = (template.cardH || 0.8) * (Number(P.size) || 1);
+  const h = (template.cardH || 0.8) * (numOr(P.size, 1) || 1);
   const w = h * cardAspect;
 
   const E: any = {
@@ -115,7 +125,7 @@ export function buildFrame(
     vy,
     rnd,
     ez: ease[(P.ease as keyof typeof ease) || 'inOutQuint'] || ease.inOutQuint,
-    hold: Number(P.hold) ?? 0.5,
+    hold: numOr(P.hold, 0.5),
     m: n,
   };
 
@@ -128,13 +138,8 @@ export function buildFrame(
   // Animation in order
   const anim = P.animIn ? animOrder(P, n, E) : null;
 
-  // Media order (stored for future use)
-  // const order = orderFor(state, n);
-
-  // Texture resolution (stored for future use)
-  // const res = opts.thumb
-  //   ? 192
-  //   : quantRes(Math.max(w, h) * height / 2 * (template.resBoost || 1.3) * (opts.resBoost || 1));
+  // Which uploaded image or video each card shows
+  const pick = mediaPicker(state.media);
 
   // Style shortcuts
   const sc = style.card;
@@ -175,7 +180,7 @@ export function buildFrame(
     );
 
     let sc0 = L.s ?? 1;
-    let o0 = (L.o ?? 1) * (Number(P.fade) ?? 1);
+    let o0 = (L.o ?? 1) * numOr(P.fade, 1);
     let blur0 = L.blur || 0;
 
     const px = M0[12];
@@ -276,9 +281,16 @@ export function buildFrame(
       bend: bend.bend,
       bendY: bend.bendY,
       zBias: L.zBias || 0,
-      thick: (Number(P.thick) || 0) * Math.min(wi, hi),
-      edgeCol: hexToRgb(String(P.edgeCol) || '#ffffff'),
-      face: { key: '', aspect: ai, res: 0, kind: 'image' as const, img: document.createElement('canvas') },
+      thick: numOr(P.thick, 0) * Math.min(wi, hi),
+      edgeCol: hexToRgb(typeof P.edgeCol === 'string' && P.edgeCol ? P.edgeCol : '#ffffff'),
+      face: faceFor(
+        pick(k),
+        k,
+        ai,
+        opts.thumb
+          ? 192
+          : quantRes((Math.max(wi, hi) * height) / 2 * (template.resBoost || 1.3) * (opts.resBoost || 1)),
+      ),
       radius: sc.radius * Math.min(wi, hi),
       opacity: o0 * sc.opacity,
       blur: clamp01(blur0 + dBlur),
@@ -312,16 +324,6 @@ export function buildFrame(
   desc.post = postDesc(style, p, Tc, opts.thumb ?? false);
 
   return desc;
-}
-
-/** Template base duration in seconds. */
-function durationRef(t: { dur?: number; step?: boolean; perCard?: number; fixedN?: boolean; n: number }, P: Record<string, any>): number {
-  if (t.step) {
-    const n = t.fixedN ? t.n : (Number(P.count) ?? t.n);
-    const per = t.perCard ?? 1.4;
-    return per * n;
-  }
-  return t.dur ?? 10;
 }
 
 /** Card aspect from state or template. */

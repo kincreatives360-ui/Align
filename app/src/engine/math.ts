@@ -226,20 +226,23 @@ export const mat4 = {
     const fy = f[1] / fl;
     const fz = f[2] / fl;
 
+    // right = forward x up. This was written as up x forward, which points LEFT,
+    // so the whole scene rendered mirrored (backwards text, back faces showing).
     const s = [
-      up[1] * fz - up[2] * fy,
-      up[2] * fx - up[0] * fz,
-      up[0] * fy - up[1] * fx,
+      fy * up[2] - fz * up[1],
+      fz * up[0] - fx * up[2],
+      fx * up[1] - fy * up[0],
     ];
     const sl = Math.hypot(s[0], s[1], s[2]);
     const sx = s[0] / sl;
     const sy = s[1] / sl;
     const sz = s[2] / sl;
 
+    // true up = right x forward
     const u = [
-      fy * sz - fz * sy,
-      fz * sx - fx * sz,
-      fx * sy - fy * sx,
+      sy * fz - sz * fy,
+      sz * fx - sx * fz,
+      sx * fy - sy * fx,
     ];
 
     return new Float32Array([

@@ -309,7 +309,7 @@ export interface PostDesc {
   labels: boolean; seed: number;
   u: {
     uEdge: number[]; uEW: number; uER: number; uED: number; uES: number; uEF: number; uEH: number; uEB: number; uEX: number;
-    uEdgeTint: number[]; uECurve: { i: number; }; uLensOn: number; uLensMode: number;
+    uEdgeTint: number[]; uECurve: { i: number; }; uLensOn: number | { i: number }; uLensMode: number | { i: number };
     uLensC: [number, number]; uLensS: [number, number]; uLensR: number;
     uLensRef: number; uLensFrost: number; uLensDisp: number; uLensBevel: number; uLensHi: number; uLensMag: number;
     uLensShadow: number; uLensTint: number[]; uLensTintA: number;
