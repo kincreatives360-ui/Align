@@ -14,11 +14,9 @@ export interface Rng {
  * The seed combines the media seed with a frame salt for variety.
  */
 export function createRng(seed: number, frameSalt = 0): Rng {
-  const baseRng = mulberry(seed + frameSalt * 10007);
-
   return (i: number, k = 0): number => {
     // Combine card index and salt into a single seed
-    const combined = (i + 1) * 1000003 + k * 10007 + seed;
+    const combined = (i + 1) * 1000003 + k * 10007 + seed + frameSalt * 10007;
     return mulberry(combined)();
   };
 }

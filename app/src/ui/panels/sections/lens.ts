@@ -40,5 +40,17 @@ export const lensSection: ControlSection = {
     { type: 'range', path: 'style.lens.shadow', label: 'Shadow', min: 0, max: 1.5, step: .01, def: .55, format: 'percent', showIf: s => s.style.lens.mode === 'glass' },
     { type: 'color', path: 'style.lens.tint', label: 'Tint', showIf: s => s.style.lens.mode === 'glass', def: '#ffffff' },
     { type: 'range', path: 'style.lens.tintA', label: 'Tint amount', min: 0, max: 1, step: .01, def: 0, format: 'percent', showIf: s => s.style.lens.mode === 'glass' },
+    {
+      type: 'segment',
+      path: 'style.lens.motion',
+      label: 'Motion',
+      def: 'static',
+      options: [
+        { value: 'static', label: 'Static' },
+        { value: 'drift', label: 'Drift' },
+        { value: 'sweep', label: 'Sweep' },
+        { value: 'orbit', label: 'Orbit' },
+      ],
+    },
   ],
 };

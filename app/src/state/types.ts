@@ -232,6 +232,24 @@ export interface FaceRef {
   aspect: number; // aspect ratio (width/height)
   res: number;    // texture resolution (pixels on long edge)
   kind: 'image' | 'video';
+  img: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
+  tex?: WebGLTexture[];
+}
+
+/** Cached face entry with textures ready for rendering. */
+export interface FaceEntry {
+  tex: WebGLTexture[];
+  w: number;
+  h: number;
+  face: FaceRef;
+  info: any;
+  used: number;
+  k?: string;
+  item?: FaceRef;
+  ver?: number;
+  vt?: number;
+  blurT?: number;
+  stale?: boolean;
 }
 
 export interface FrameBackground {
@@ -249,6 +267,7 @@ export interface CameraDesc {
   fov: number;          // vertical FOV in radians
   eye: [number, number, number]; // world-space eye position
   target: [number, number, number]; // point camera looks at
+  up?: [number, number, number]; // up vector
 }
 
 export interface CardDesc {
@@ -257,7 +276,7 @@ export interface CardDesc {
   rx: number; ry: number; rz: number; // rotation in radians
   sx: number; sy: number; // scale
   w: number; h: number; // pixel dimensions
-  face: FaceRef;        // texture lookup key
+  face: FaceRef;        // reference to media (converted to FaceEntry by renderer)
   radius: number;       // corner rounding
   opacity: number;      // 0..1
   blur: number;         // depth-of-field blur
@@ -275,6 +294,11 @@ export interface CardDesc {
   glassD: number;       // dispersion 0..1.5
   crumple: number;      // crumple amount 0..1
   crSeed: number;       // crumple seed
+  bend: number;         // bend amount
+  bendY: number;        // bendY amount
+  zBias: number;        // depth bias
+  thick: number;        // card thickness
+  edgeCol: number[];    // edge color
 }
 
 export interface ShadowDesc {
@@ -290,5 +314,18 @@ export interface PostDesc {
     uLensRef: number; uLensFrost: number; uLensDisp: number; uLensBevel: number; uLensHi: number; uLensMag: number;
     uLensShadow: number; uLensTint: number[]; uLensTintA: number;
     uGrain: number; uVig: number; uBloom: number; uChroma: number; uContrast: number; uSat: number; uEdgeBlur: number; uExposure: number;
+    [key: string]: any;
   };
+}
+
+/** Complete frame descriptor for rendering. */
+export interface FrameDescriptor {
+  W: number;
+  H: number;
+  bg: FrameBackground | null;
+  camera: CameraDesc;
+  cards: CardDesc[];
+  shadow: ShadowDesc | null;
+  flare: any | null;
+  post: PostDesc;
 }

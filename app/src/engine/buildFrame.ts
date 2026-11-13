@@ -1,4 +1,4 @@
-import type { ProjectState, FrameBackground, CameraDesc, CardDesc, ShadowDesc, PostDesc, FaceRef } from '../state/types';
+import type { ProjectState, FrameBackground, CameraDesc, CardDesc, ShadowDesc, PostDesc } from '../state/types';
 import { byId } from '../templates/registry';
 import { clipInfo, wrapTime } from './timing';
 import { buildCamera, computeViewExtents } from './camera';
@@ -45,32 +45,31 @@ export function buildFrame(
     W: width,
     H: height,
     bg: null,
-    camera: null,
+    camera: null as any,
     cards: [],
     shadow: null,
     flare: null,
-    post: null,
+    post: null as any,
   };
 
   // Get clip info for seamless looping
-  const clip = clipInfo({ template, params: P, export: state.export });
+  const clip = clipInfo(state);
   const rate = opts.rate ?? clip.rate;
 
   // T is clip time; motion runs at seamless-loop rate on top of template speed
   const Tc = clipTime;
   const T = clipTime * rate;
-  const T2 = T * (P.speed || 1);
+  const T2 = T * (Number(P.speed) || 1);
 
   // Handle flare template separately (placeholder for now)
   if (template.kind === 'flare') {
-    // TODO: Implement flare template
     desc.bg = bgDesc(style, 0);
     desc.post = postDesc(style, 0, Tc, opts.thumb ?? false);
     return desc;
   }
 
   // Card count
-  const n = template.fixedN ? template.n : Math.max(1, Math.round(P.count || template.n));
+  const n = template.fixedN ? template.n : Math.max(1, Math.round(Number(P.count) || template.n));
 
   // Loop phase
   let p = wrapTime(T2 / durationRef(template, P), 1);
@@ -78,9 +77,9 @@ export function buildFrame(
 
   // Easing > Stepped: continuous templates can hold on each step
   if (!template.step && P.motion === 'stepped') {
-    const k = Math.round(P.steps) || n;
-    const hold = P.hold ?? 0.5;
-    const ez = ease[P.ease as keyof typeof ease] || ease.inOutQuint;
+    const k = Math.round(Number(P.steps)) || n;
+    const hold = Number(P.hold) ?? 0.5;
+    const ez = ease[(P.ease as keyof typeof ease) || 'inOutQuint'] || ease.inOutQuint;
     const c = p * k;
     const f = c - Math.floor(c);
     p = wrap((Math.floor(c) + ez(clamp01((f - hold) / Math.max(1e-3, 1 - hold)))) / k, 1);
@@ -102,44 +101,40 @@ export function buildFrame(
 
   // Env for template layout
   const cardAspect = cardAspectForState(state, template);
-  const h = (template.cardH || 0.8) * (P.size || 1);
+  const h = (template.cardH || 0.8) * (Number(P.size) || 1);
   const w = h * cardAspect;
-  const D = 1 / Math.tan(desc.camera.fov / 2);
-  const gs = Math.abs(P.scale ?? 1) || 1;
-  const Dz = Math.hypot(desc.camera.eye[0], desc.camera.eye[1], desc.camera.eye[2]) || D;
 
-  const E: Env = {
+  const E: any = {
     p,
     n,
     asp: aspect,
     w,
     h,
-    D,
+    D: 1 / Math.tan(desc.camera.fov / 2),
     vx,
     vy,
     rnd,
-    ez: ease[P.ease as keyof typeof ease] || ease.inOutQuint,
-    hold: P.hold ?? 0.5,
+    ez: ease[(P.ease as keyof typeof ease) || 'inOutQuint'] || ease.inOutQuint,
+    hold: Number(P.hold) ?? 0.5,
     m: n,
   };
 
-  // Template may provide its own camera
-  const c0 = template.camera ? template.camera(P, E) : {};
+  // Template may provide its own camera (unused, but kept for future use)
+  // const c0 = template.camera ? template.camera(P, E) : {};
 
   // Group matrix (pose/transform/pan)
   const G = groupMatrix(P, p);
 
   // Animation in order
   const anim = P.animIn ? animOrder(P, n, E) : null;
-  const aEase = ease[P.animEase as keyof typeof ease] || ease.outQuint;
 
-  // Media order
-  const order = orderFor(state, n);
+  // Media order (stored for future use)
+  // const order = orderFor(state, n);
 
-  // Texture resolution
-  const res = opts.thumb
-    ? 192
-    : quantRes(Math.max(w, h) * height / 2 * (template.resBoost || 1.3) * (opts.resBoost || 1));
+  // Texture resolution (stored for future use)
+  // const res = opts.thumb
+  //   ? 192
+  //   : quantRes(Math.max(w, h) * height / 2 * (template.resBoost || 1.3) * (opts.resBoost || 1));
 
   // Style shortcuts
   const sc = style.card;
@@ -159,7 +154,7 @@ export function buildFrame(
   if (template.fill) {
     const F = template.fill(P, E);
     Object.assign(E, F);
-    N = F.count ?? n;
+    N = Number(F.count) || n;
   }
 
   // Build each card
@@ -180,7 +175,7 @@ export function buildFrame(
     );
 
     let sc0 = L.s ?? 1;
-    let o0 = (L.o ?? 1) * (P.fade ?? 1);
+    let o0 = (L.o ?? 1) * (Number(P.fade) ?? 1);
     let blur0 = L.blur || 0;
 
     const px = M0[12];
@@ -189,10 +184,9 @@ export function buildFrame(
 
     // Displacement
     const disp = applyDisplacement(P, p, k);
-    blur0 += 0; // displacement doesn't add blur
 
     // Wave
-    const waveResult = applyWave(P, px, py, p, k);
+    const waveResult = applyWave(P, px, py, p);
 
     // Animation in
     let local: Float32Array | null = null;
@@ -266,7 +260,7 @@ export function buildFrame(
     // Glare phase
     const glareP = L.glareP ?? (wrap(p, 1) * 2.8 - 0.8);
 
-    // Card descriptor
+    // Card descriptor - match CardDesc type from state/types.ts
     desc.cards.push({
       m,
       x: cx,
@@ -279,11 +273,12 @@ export function buildFrame(
       sy: 1,
       w: wi,
       h: hi,
-      ...bend,
+      bend: bend.bend,
+      bendY: bend.bendY,
       zBias: L.zBias || 0,
-      thick: (P.thick || 0) * Math.min(wi, hi),
-      edgeCol: hexToRgb(P.edgeCol || '#ffffff'),
-      face: { key: '', aspect: ai, res: 0, kind: 'image' }, // placeholder, filled by renderer
+      thick: (Number(P.thick) || 0) * Math.min(wi, hi),
+      edgeCol: hexToRgb(String(P.edgeCol) || '#ffffff'),
+      face: { key: '', aspect: ai, res: 0, kind: 'image' as const, img: document.createElement('canvas') },
       radius: sc.radius * Math.min(wi, hi),
       opacity: o0 * sc.opacity,
       blur: clamp01(blur0 + dBlur),
@@ -322,7 +317,7 @@ export function buildFrame(
 /** Template base duration in seconds. */
 function durationRef(t: { dur?: number; step?: boolean; perCard?: number; fixedN?: boolean; n: number }, P: Record<string, any>): number {
   if (t.step) {
-    const n = t.fixedN ? t.n : (P.count as number ?? t.n);
+    const n = t.fixedN ? t.n : (Number(P.count) ?? t.n);
     const per = t.perCard ?? 1.4;
     return per * n;
   }
@@ -335,44 +330,6 @@ function cardAspectForState(state: ProjectState, template: { aspect: number }): 
   if (!a || a === 'auto') return template.aspect;
   const [x, y] = a.split(':').map(Number);
   return x / y;
-}
-
-/** Media order (in-order or shuffled). */
-function orderFor(state: ProjectState, n: number): number[] {
-  const idx = Array.from({ length: n }, (_, i) => i);
-  if (state.media.order === 'shuffle') {
-    const R = mulberry(state.media.seed || 1);
-    for (let i = n - 1; i > 0; i--) {
-      const j = Math.floor(R() * (i + 1));
-      [idx[i], idx[j]] = [idx[j], idx[i]];
-    }
-  }
-  return idx;
-}
-
-/** Quantize texture resolution to a ladder. */
-const RES_STEPS = [192, 256, 384, 512, 768, 1024, 1536, 2048, 3072];
-function quantRes(px: number): number {
-  return RES_STEPS.find(r => r >= px) || 3072;
-}
-
-/** Background descriptor. */
-function bgDesc(style: any, phase: number): FrameBackground {
-  const b = style.bg;
-  const BG_MODES: Record<string, number> = {
-    solid: 0, linear: 1, radial: 2, mesh: 3, aurora: 4,
-    grid: 5, dots: 6, holo: 7, spotlight: 8, plasma: 9,
-  };
-  return {
-    mode: BG_MODES[b.mode] ?? 0,
-    c: b.c.map(hexToRgb),
-    phase,
-    cycles: Math.max(1, Math.round(b.cycles || 1)),
-    scale: b.scale ?? 1,
-    angle: (b.angle ?? 34) * D2R,
-    amt: b.amt ?? 1,
-    transparent: !!b.transparent,
-  };
 }
 
 /** Post-processing descriptor. */
@@ -423,9 +380,9 @@ function postDesc(style: any, phase: number, T: number, thumb: boolean): PostDes
       uEB: g.bulge ?? 0.35,
       uEX: g.stretch ?? 0,
       uEdgeTint: bgTransparent ? [1, 1, 1] : hexToRgb(bgC0),
-      uECurve: { i: { panel: 0, lens: 1, wave: 2 }[g.curve] ?? 0 },
+      uECurve: { i: ({ panel: 0, lens: 1, wave: 2 } as Record<string, number>)[g.curve] ?? 0 },
       uLensOn: L.on ? 1 : 0,
-      uLensMode: { i: L.mode === 'hole' ? 1 : 0 },
+      uLensMode: L.mode === 'hole' ? 1 : 0,
       uLensC: [lx, 1 - ly],
       uLensS: [shape[0] / 2, shape[1] / 2],
       uLensR: shape[2],
@@ -447,16 +404,5 @@ function postDesc(style: any, phase: number, T: number, thumb: boolean): PostDes
       uExposure: fx.exposure,
       uEdgeBlur: style.blur.on ? style.blur.edge : 0,
     },
-  };
-}
-
-/** Mulberry32 PRNG. */
-function mulberry(seed: number): () => number {
-  let t = seed >>> 0;
-  return () => {
-    t = (t + 0x6d2b79f5) >>> 0;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
   };
 }

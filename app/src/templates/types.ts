@@ -9,7 +9,9 @@ export type CategoryId =
   | 'glass'
   | 'blur'
   | 'bold'
-  | 'minimal';
+  | 'minimal'
+  | 'transitions'
+  | 'carousel';
 
 export interface CategoryInfo {
   id: CategoryId;
@@ -35,6 +37,12 @@ export interface Env {
   ez: (t: number) => number;
   /** Hold fraction for stepped motion. */
   hold: number;
+  /** Distance to view plane. */
+  D: number;
+  /** Number of media blocks (for fill). */
+  mb: number;
+  /** Total cards after fill. */
+  m: number;
   [key: string]: unknown;
 }
 
@@ -58,6 +66,16 @@ export interface CardPose {
   img?: number;
   /** Or supply a full transform matrix instead of x/y/z/rx/ry/rz. */
   m?: Float32Array;
+  /** For wave displacement */
+  h?: number;
+  w?: number;
+  /** For crumple */
+  crumple?: number;
+  crSeed?: number;
+  /** For glare phase */
+  glareP?: number;
+  /** For bend axis */
+  bendY?: number;
 }
 
 export type P = Record<string, ParamValue>;
@@ -106,6 +124,9 @@ export interface Template {
 
   /** The camera for this template. */
   camera?: (params: P, env: Env) => { eye: Vec3; target: Vec3 };
+
+  /** Special template kind (e.g., 'flare') */
+  kind?: string;
 
   /** ★ The animation: where is card `i` at loop phase `env.p`? */
   layout: (i: number, params: P, env: Env) => CardPose;

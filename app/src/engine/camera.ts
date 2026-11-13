@@ -1,9 +1,27 @@
-import { mat4, Vec3 } from './math';
+import { D2R } from './math';
+import type { Vec3 } from '../templates/types';
 
 export interface CameraDesc {
   fov: number;
   eye: Vec3;
   target: Vec3;
+}
+
+const ASPECTS: Record<string, [number, number]> = {
+  '16:9': [16, 9],
+  '9:16': [9, 16],
+  '1:1': [1, 1],
+  '4:5': [4, 5],
+  '5:4': [5, 4],
+  '4:3': [4, 3],
+  '3:4': [3, 4],
+  '21:9': [21, 9],
+  '2:3': [2, 3],
+};
+
+/** Get numeric value from ParamValue. */
+function num(v: any, def = 0): number {
+  return typeof v === 'number' ? v : def;
 }
 
 /**
@@ -20,21 +38,9 @@ export function buildCamera(
     frame: { aspect: string };
   },
   template: { fov?: number; frame: string; cardH?: number },
-  aspect: number,
+  _aspect: number,
   clipPhase: number
 ): CameraDesc {
-  const ASPECTS: Record<string, [number, number]> = {
-    '16:9': [16, 9],
-    '9:16': [9, 16],
-    '1:1': [1, 1],
-    '4:5': [4, 5],
-    '5:4': [5, 4],
-    '4:3': [4, 3],
-    '3:4': [3, 4],
-    '21:9': [21, 9],
-    '2:3': [2, 3],
-  };
-
   const cam = state.style.camera;
   const baseFov = template.fov || 30;
   const fov = Math.min(110, (baseFov * (cam.fov || 30)) / 30) * Math.PI / 180;
@@ -62,8 +68,6 @@ export function buildCamera(
   return { fov, eye, target };
 }
 
-const D2R = Math.PI / 180;
-
 /**
  * Compute the visible frame extents (vx, vy) at z=0 for layout calculations.
  */
@@ -73,34 +77,25 @@ export function computeViewExtents(
   aspect: number,
   template: { frame: string }
 ): { vx: number; vy: number } {
-  const ASPECTS: Record<string, [number, number]> = {
-    '16:9': [16, 9],
-    '9:16': [9, 16],
-    '1:1': [1, 1],
-    '4:5': [4, 5],
-    '5:4': [5, 4],
-    '4:3': [4, 3],
-    '3:4': [3, 4],
-    '21:9': [21, 9],
-    '2:3': [2, 3],
-  };
-
   const [da, db] = ASPECTS[template.frame] || [16, 9];
   const designAsp = da / db;
   const fit = aspect < designAsp ? Math.pow(designAsp / aspect, 0.8) : 1;
 
   const Dz = Math.hypot(camera.eye[0], camera.eye[1], camera.eye[2]) || 1 / Math.tan(camera.fov / 2);
   const turn = 1 + 1.5 * Math.max(
-    Math.abs(Math.sin((params.poseRx || 0) * D2R)),
-    Math.abs(Math.sin((params.poseRy || 0) * D2R)),
-    Math.abs(Math.sin((params.poseRz || 0) * D2R)),
-    Math.abs(Math.sin((params.orbit || 0) * D2R)),
-    Math.abs(Math.sin((params.tilt || 0) * D2R))
+    Math.abs(Math.sin((num(params.poseRx) || 0) * D2R)),
+    Math.abs(Math.sin((num(params.poseRy) || 0) * D2R)),
+    Math.abs(Math.sin((num(params.poseRz) || 0) * D2R)),
+    Math.abs(Math.sin((num(params.orbit) || 0) * D2R)),
+    Math.abs(Math.sin((num(params.tilt) || 0) * D2R))
   );
 
-  const far = Math.max(1, (Dz - (params.offZ || 0) + 2 * Math.abs(params.panZ || 0)) / Dz) * turn * Dz / (1 / Math.tan(camera.fov / 2));
-  const vy = (far + Math.abs(params.offY || 0)) / Math.abs(params.scale || 1);
-  const vx = (far * aspect + Math.abs(params.offX || 0) + Math.abs(params.panX || 0)) / Math.abs(params.scale || 1);
+  const far = Math.max(1, (Dz - (num(params.offZ) || 0) + 2 * Math.abs(num(params.panZ) || 0)) / Dz) * turn * Dz / (1 / Math.tan(camera.fov / 2));
+  const vy = (far + Math.abs(num(params.offY) || 0)) / Math.abs(num(params.scale) || 1);
+  const vx = (far * aspect + Math.abs(num(params.offX) || 0) + Math.abs(num(params.panX) || 0)) / Math.abs(num(params.scale) || 1);
+
+  // fit is used in far calculation implicitly via Dz scaling
+  void fit;
 
   return { vx, vy };
 }

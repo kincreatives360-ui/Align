@@ -5,6 +5,7 @@ import { lensSection } from './lens';
 import { cardSection, shadowSection, shadeSection, blurSection } from './cards';
 import { cameraSection } from './camera';
 import { effectsSection } from './effects';
+import { titleSection, labelsSection, logoSection, animSection } from './text';
 
 /**
  * The whole look inspector, as data, in display order.
@@ -24,4 +25,8 @@ export const STYLE_SECTIONS: ControlSection[] = [
   lensSection,
   cameraSection,
   effectsSection,
+  titleSection,
+  labelsSection,
+  logoSection,
+  animSection,
 ];

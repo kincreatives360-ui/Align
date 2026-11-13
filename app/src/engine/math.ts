@@ -255,3 +255,12 @@ export const mat4 = {
 };
 
 export type Vec3 = [number, number, number];
+
+/** Standalone lookAt function for convenience. */
+export function lookAt(
+  eye: Vec3,
+  target: Vec3,
+  up: Vec3 = [0, 1, 0]
+): Float32Array {
+  return mat4.lookAt(eye, target, up);
+}
