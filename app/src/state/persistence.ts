@@ -1,9 +1,12 @@
 import type { ProjectState } from './types';
+import { putProject } from '../media/store';
 
 const DRAFT_KEY = 'ac-draft';
 const SAVE_DELAY = 400;
+const PROJECT_SAVE_DELAY = 1200;
 
 let timer: ReturnType<typeof setTimeout> | null = null;
+let projectTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Debounced write of the working draft to localStorage.
@@ -22,6 +25,30 @@ export function scheduleSave(state: ProjectState): void {
       reportSave('error');
     }
   }, SAVE_DELAY);
+}
+
+/**
+ * Debounced write of the project to IndexedDB.
+ *
+ * Runs at 1200ms delay. This is the proper project autosave.
+ */
+export function scheduleProjectSave(state: ProjectState): void {
+  if (projectTimer !== null) clearTimeout(projectTimer);
+  projectTimer = setTimeout(async () => {
+    projectTimer = null;
+    try {
+      const project: any = {
+        id: 'current',
+        name: state.name,
+        data: JSON.stringify(state),
+        updatedAt: Date.now(),
+      };
+      await putProject(project);
+      reportSave('saved');
+    } catch {
+      reportSave('error');
+    }
+  }, PROJECT_SAVE_DELAY);
 }
 
 /* ------------------------------------------------------------------ */

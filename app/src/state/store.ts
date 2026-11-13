@@ -3,7 +3,7 @@ import type { ProjectState } from './types';
 import { newProject } from './defaults';
 import { setPath } from './path';
 import { History } from './history';
-import { scheduleSave } from './persistence';
+import { scheduleSave, scheduleProjectSave } from './persistence';
 import { register } from './mediaRegistry';
 
 /**
@@ -54,6 +54,7 @@ const history = new History();
 /** Coalesce the save request — 400ms of quiet before anything is written. */
 function persist(state: ProjectState): void {
   scheduleSave(state);
+  scheduleProjectSave(state);
 }
 
 export const useProject = create<ProjectStore>((set, get) => ({
