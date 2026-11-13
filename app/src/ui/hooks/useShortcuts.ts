@@ -69,6 +69,14 @@ export function useShortcuts(): void {
           else void stage?.requestFullscreen();
           break;
         }
+        case 't':
+        case 'T': {
+          const theme = useProject.getState().state.theme;
+          const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+          useProject.getState().set('theme', next);
+          useProject.getState().commit();
+          break;
+        }
         case 'r':
         case 'R':
           document.getElementById('surprise')?.click();

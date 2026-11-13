@@ -29,6 +29,9 @@ svg{display:block}
 .seg2{display:flex;background:var(--panel2);border-radius:10px;padding:3px;gap:2px}
 .seg2 button{border:0;background:none;border-radius:7px;width:30px;height:26px;display:grid;place-items:center;cursor:pointer;color:var(--dim)}
 .seg2 button.on{background:var(--panel3);color:var(--text)}
+.seg3{display:flex;background:var(--panel2);border-radius:10px;padding:3px;gap:2px}
+.seg3 button{border:0;background:none;border-radius:7px;width:30px;height:26px;display:grid;place-items:center;cursor:pointer;color:var(--dim)}
+.seg3 button.on{background:var(--panel3);color:var(--text)}
 .ib{border:0;background:var(--panel2);border-radius:10px;height:32px;min-width:32px;padding:0 9px;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;color:var(--text)}
 .ib:hover{background:var(--hover)}
 .ib.ghost{background:none}
