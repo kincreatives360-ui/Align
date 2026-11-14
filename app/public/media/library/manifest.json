@@ -1,0 +1,94 @@
+{
+  "items": [
+    {
+      "src": "photo-01.jpg",
+      "thumb": "photo-01.jpg",
+      "name": "Mountain Lake",
+      "tags": ["nature", "landscape", "water"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-02.jpg",
+      "thumb": "photo-02.jpg",
+      "name": "City Lights",
+      "tags": ["urban", "night", "architecture"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-03.jpg",
+      "thumb": "photo-03.jpg",
+      "name": "Forest Path",
+      "tags": ["nature", "forest", "green"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-04.jpg",
+      "thumb": "photo-04.jpg",
+      "name": "Ocean Sunset",
+      "tags": ["nature", "ocean", "sunset"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-05.jpg",
+      "thumb": "photo-05.jpg",
+      "name": "Desert Dunes",
+      "tags": ["nature", "desert", "sand"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-06.jpg",
+      "thumb": "photo-06.jpg",
+      "name": "Mountain Peak",
+      "tags": ["nature", "mountain", "snow"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-07.jpg",
+      "thumb": "photo-07.jpg",
+      "name": "Autumn Trees",
+      "tags": ["nature", "autumn", "trees"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-08.jpg",
+      "thumb": "photo-08.jpg",
+      "name": "Coastal Cliffs",
+      "tags": ["nature", "ocean", "cliffs"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-09.jpg",
+      "thumb": "photo-09.jpg",
+      "name": "Misty Valley",
+      "tags": ["nature", "valley", "mist"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    },
+    {
+      "src": "photo-10.jpg",
+      "thumb": "photo-10.jpg",
+      "name": "Starry Night",
+      "tags": ["nature", "night", "stars"],
+      "w": 1920,
+      "h": 1280,
+      "kind": "image"
+    }
+  ]
+}

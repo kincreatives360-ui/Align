@@ -4,6 +4,7 @@ import { buildFrame } from '../../engine/buildFrame';
 import { useProject } from '../../state/store';
 import { useClock } from '../../state/clockStore';
 import { setMediaChangeListener, setVideosPlaying } from '../../media/mediaSource';
+import { syncVideos } from '../../media/video';
 
 /** Cap the backing store at 2x so a 3x phone does not render 9 pixels per CSS pixel. */
 const MAX_DPR = 2;
@@ -113,6 +114,11 @@ export function StageCanvas() {
       }
 
       if (!renderer || contextLost) return;
+
+      // Sync videos to composition clock during preview playback
+      if (useClock.getState().playing) {
+        syncVideos(t);
+      }
 
       const store = useProject.getState();
       if (!(store.dirty || force || t !== lastT)) return;

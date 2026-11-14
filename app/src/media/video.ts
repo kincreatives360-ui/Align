@@ -167,3 +167,36 @@ export function disposeAllVideos(): void {
   }
   pool.clear();
 }
+
+/** The video time for composition time T: the clip loops over the video's own length. */
+export function videoTime(v: HTMLVideoElement, T: number): number {
+  const d = v.duration || 1;
+  return Math.min(d - 1e-3, ((T % d) + d) % d);
+}
+
+/** Sync all playing videos to the composition clock (preview). */
+export function syncVideos(T: number): void {
+  for (const entry of pool.values()) {
+    if (!entry.ready || !entry.el.duration) continue;
+    const want = videoTime(entry.el, T);
+    const d = entry.el.duration;
+    if (wantPlaying && !entry.el.paused && !document.hidden) {
+      if (entry.el.paused) entry.el.play().catch(() => {});
+      let diff = entry.el.currentTime - want;
+      diff -= d * Math.round(diff / d);
+      if (Math.abs(diff) > 0.2 && !entry.el.seeking) entry.el.currentTime = want;
+    } else {
+      if (!entry.el.paused) entry.el.pause();
+      if (Math.abs(entry.el.currentTime - want) > 0.004 && !entry.el.seeking) entry.el.currentTime = want;
+    }
+  }
+}
+
+/** Before each export frame, seek every video to its time for T and wait for that frame. */
+export async function prepareFrame(T: number): Promise<void> {
+  const vs = Array.from(pool.values()).filter(e => e.ready);
+  if (!vs.length) return;
+  await Promise.all(vs.map(entry => seekVideo(entry.item, videoTime(entry.el, T)).then(() => {
+    entry.el._ver = (entry.el._ver ?? 0) + 1;
+  })));
+}

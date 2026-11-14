@@ -275,7 +275,7 @@ describe('template categories', () => {
     expect(apertureFill.count).toBe(aperture.n + 12);
     expect(aperture.layout(apertureFill.count - 1, apertureParams, galleryEnv(aperture.n)).img).toBe(aperture.n + 11);
     const images: MediaItem[] = ['a', 'b', 'c'].map(id => ({ id, kind: 'image', name: id, width: 10, height: 10 }));
-    const pick = mediaPicker({ order: 'in', seed: 1, images });
+    const pick = mediaPicker({ order: 'in', seed: 1, images, set: 'auto' });
     expect(Array.from({ length: reelFill.count }, (_, i) => pick(reels.layout(i, reelParams, galleryEnv(reels.n)).img ?? i % reels.n)?.id))
       .toEqual(Array.from({ length: reelFill.count }, (_, i) => images[i % images.length].id));
 

@@ -1,6 +1,7 @@
 import { MediaDropzone } from './MediaDropzone';
 import { OrderControls } from './OrderControls';
 import { MediaGrid } from './MediaGrid';
+import { ProceduralMediaPicker } from './ProceduralMediaPicker';
 
 /**
  * Your images, in card order — this list *is* the layer order.
@@ -11,6 +12,7 @@ export function MediaPanel() {
     <>
       <MediaDropzone />
       <OrderControls />
+      <ProceduralMediaPicker />
       <MediaGrid />
     </>
   );

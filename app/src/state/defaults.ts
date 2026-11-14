@@ -90,6 +90,7 @@ export const DEFAULT_FRAME: FrameState = {
   preview: 'auto',
   zone: '',
   zoneShow: false,
+  social: '',
 };
 
 export const DEFAULT_EXPORT: ExportSettings = {
@@ -112,6 +113,7 @@ export const DEFAULT_EXPORT: ExportSettings = {
 export const DEFAULT_MEDIA: MediaState = {
   order: 'in',
   seed: 1,
+  set: 'auto',
   images: [],
 };
 

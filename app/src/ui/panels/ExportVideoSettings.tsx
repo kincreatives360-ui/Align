@@ -1,6 +1,7 @@
 import { useProject } from '../../state/store';
 import { Section } from '../controls/Section';
 import { Row } from '../controls/Row';
+import { SOCIAL_PRESETS, type SocialPresetKey } from '../../state/config';
 
 const RESOLUTIONS = [480, 720, 1080, 1440, 2160];
 const FPS = [24, 30, 60, 120];
@@ -15,6 +16,17 @@ const FORMATS = [
   { value: 'webm', label: 'WebM' },
 ];
 
+const SOCIAL_OPTIONS: { value: SocialPresetKey | ''; label: string }[] = [
+  { value: '', label: 'Custom' },
+  { value: 'reels', label: SOCIAL_PRESETS.reels.name },
+  { value: 'story', label: SOCIAL_PRESETS.story.name },
+  { value: 'feed', label: SOCIAL_PRESETS.feed.name },
+  { value: 'square', label: SOCIAL_PRESETS.square.name },
+  { value: 'linkedin', label: SOCIAL_PRESETS.linkedin.name },
+  { value: 'youtube', label: SOCIAL_PRESETS.youtube.name },
+  { value: 'dribbble', label: SOCIAL_PRESETS.dribbble.name },
+];
+
 export function ExportVideoSettings() {
   const res = useProject(s => s.state.export.res);
   const fps = useProject(s => s.state.export.fps);
@@ -22,14 +34,40 @@ export function ExportVideoSettings() {
   const format = useProject(s => s.state.export.format);
   const duration = useProject(s => s.state.export.duration);
   const seamless = useProject(s => s.state.export.seamless);
+  const social = useProject(s => s.state.frame.social || '');
 
   const set = (path: string, value: unknown) => {
     useProject.getState().set(path, value);
     useProject.getState().commit();
   };
 
+  const applySocial = (key: SocialPresetKey | '') => {
+    if (!key) return;
+    const p = SOCIAL_PRESETS[key];
+    set('export.res', p.res);
+    set('export.fps', p.fps);
+    set('export.format', 'mp4');
+    set('export.seamless', true);
+    set('frame.aspect', p.aspect);
+    set('frame.zone', p.zone);
+    set('frame.zoneShow', true);
+    set('frame.social', key);
+  };
+
   return (
     <Section id="x-video" title="Video" flat>
+      <Row label="Social preset">
+        <select className="sel" value={social} onChange={e => {
+          const key = e.target.value as SocialPresetKey | '';
+          set('frame.social', key);
+          if (key) applySocial(key);
+        }}>
+          {SOCIAL_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </Row>
+
       <Row label="Format">
         <div className="sg">
           {FORMATS.map(f => (

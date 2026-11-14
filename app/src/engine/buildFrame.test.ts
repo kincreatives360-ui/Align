@@ -474,13 +474,13 @@ describe('mediaPicker', () => {
   const images = ['a', 'b', 'c', 'd'].map(item);
 
   it('cycles in order', () => {
-    const pick = mediaPicker({ order: 'in', seed: 1, images });
+    const pick = mediaPicker({ order: 'in', seed: 1, images, set: 'auto' });
     expect([0, 1, 2, 3, 4, 5].map(k => pick(k)?.id)).toEqual(['a', 'b', 'c', 'd', 'a', 'b']);
   });
 
   it('shuffles the same way for the same seed, differently for another', () => {
     const ids = (seed: number) => {
-      const pick = mediaPicker({ order: 'shuffle', seed, images });
+      const pick = mediaPicker({ order: 'shuffle', seed, images, set: 'auto' });
       return [0, 1, 2, 3].map(k => pick(k)?.id).join('');
     };
     expect(ids(7)).toBe(ids(7));
@@ -489,6 +489,6 @@ describe('mediaPicker', () => {
   });
 
   it('returns undefined when there is no media', () => {
-    expect(mediaPicker({ order: 'in', seed: 1, images: [] })(0)).toBeUndefined();
+    expect(mediaPicker({ order: 'in', seed: 1, images: [], set: 'auto' })(0)).toBeUndefined();
   });
 });

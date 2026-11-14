@@ -156,3 +156,151 @@ export function applyDisplacement(P: P, p: number, k: number): { dz: number; ay:
   if (num(P.dispY)) ay += num(P.dispY) * Math.sin(TAU * (Math.round(num(P.dispSpeed)) * p + k * (num(P.dispOffset) || 0) + 0.25));
   return { dz, ay };
 }
+
+/* ------------------------------------------------------------------ */
+/* Labels, title, logo rendering                                      */
+/* ------------------------------------------------------------------ */
+
+import type { ProjectState } from '../state/types';
+import { Renderer } from '../render/Renderer';
+import { hexToRgb } from './math';
+
+let labelKey = '';
+
+interface SyncLabelsApp {
+  state: ProjectState;
+  logos: Map<string, HTMLImageElement>;
+  labelCanvas: HTMLCanvasElement | null;
+  renderer: Renderer;
+}
+
+function luminance(rgb: number[]): number {
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+
+export function syncLabels(app: SyncLabelsApp, W: number, H: number, _T = 0): void {
+  const st = app.state;
+  const L = st.style.labels;
+  const Ti = st.style.title;
+  const Lg = st.style.logo;
+  const logo = Lg.on && Lg.id ? app.logos?.get(Lg.id) : null;
+  
+  if (!L.on && !Ti.on && !logo) {
+    if (labelKey) {
+      app.renderer.setLabels(null);
+      labelKey = '';
+    }
+    return;
+  }
+  
+  // Simple animation progress (0 to 1)
+  const kind = st.style.anim?.kind || 'rise';
+  const v = [1, 1, 1];
+  
+  const bgColor = st.style.bg.c[0];
+  const bgMode = st.style.bg.mode;
+  const key = JSON.stringify([L, Ti, Lg, !!logo, v, kind, W, H, bgColor, bgMode]);
+  
+  if (key === labelKey) return;
+  labelKey = key;
+  
+  if (!app.labelCanvas) app.labelCanvas = document.createElement('canvas');
+  const c = app.labelCanvas;
+  if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+  
+  const x = c.getContext('2d')!;
+  const u = Math.min(W, H);
+  x.clearRect(0, 0, W, H);
+  
+  const enter = (a: number, cx: number, cy: number, dir = 1) => {
+    if (a >= 1) return;
+    x.globalAlpha *= kind === 'type' ? Math.min(1, a * 3) : a;
+    if (kind === 'rise') x.translate(0, (1 - a) * u * 0.045 * dir);
+    if (kind === 'slide') x.translate((1 - a) * -u * 0.06, 0);
+    if (kind === 'pop') { const s = 0.82 + 0.18 * a; x.translate(cx, cy); x.scale(s, s); x.translate(-cx, -cy); }
+  };
+  
+  const typed = (s: string, a: number) => kind === 'type' && a < 1 ? s.slice(0, Math.round(s.length * a)) : s;
+  
+  if (logo && v[0] > 0) {
+    const lw = u * (Lg.size || 0.14);
+    const lh = lw * (logo.height || 1) / (logo.width || 1);
+    const m = u * 0.045;
+    const pos = Lg.pos || 'br';
+    const lx = pos === 'center' ? (W - lw) / 2 : pos.endsWith('l') ? m : W - m - lw;
+    const ly = pos === 'center' ? (H - lh) / 2 : pos.startsWith('t') ? m : H - m - lh;
+    x.save();
+    x.globalAlpha = Lg.opacity ?? 1;
+    enter(v[0], lx + lw / 2, ly + lh / 2, pos.startsWith('t') ? -1 : 1);
+    x.drawImage(logo, lx, ly, lw, lh);
+    x.restore();
+  }
+  
+  const dark = luminance(hexToRgb(bgColor)) < 0.5 && !st.style.bg.transparent;
+  const ink = L.color && L.color !== 'auto' ? L.color : dark ? 'rgba(255,255,255,.62)' : 'rgba(25,25,28,.78)';
+  
+  if (Ti.on && Ti.text && v[1] > 0) {
+    x.save();
+    x.fillStyle = Ti.color || '#ffffff';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    const tf = u * 0.075 * (Ti.size || 1);
+    const ty = H * (Ti.y ?? 0.5);
+    x.font = `${Ti.weight || 400} ${tf}px "${Ti.font || 'Inter'}"`;
+    if ('letterSpacing' in x) (x as any).letterSpacing = (-tf * 0.02) + 'px';
+    enter(v[1], W / 2, ty);
+    x.fillText(typed(Ti.text, v[1]), W / 2, ty);
+    x.restore();
+  }
+  
+  if (L.on && v[2] > 0) {
+    const m = Math.round(u * 0.035);
+    const fs = Math.max(9, u * 0.019 * (L.size || 1));
+    x.save();
+    x.fillStyle = ink;
+    x.textBaseline = 'middle';
+    enter(v[2], W / 2, H / 2);
+    let lx = m;
+    const ty = m + fs * 0.6;
+    const by = H - m - fs * 0.6;
+    
+    if (L.mark) {
+      const r = fs * 0.8;
+      x.beginPath();
+      x.arc(lx + r, ty, r, 0, Math.PI * 2);
+      x.fill();
+      x.save();
+      x.globalCompositeOperation = 'destination-out';
+      x.beginPath();
+      x.moveTo(lx + r * 0.5, ty + r * 0.45);
+      x.lineTo(lx + r * 1.5, ty + r * 0.45);
+      x.lineTo(lx + r, ty - r * 0.5);
+      x.closePath();
+      x.fill();
+      x.restore();
+      lx += r * 2 + fs * 0.5;
+    }
+    
+    const head = L.font || 'Inter';
+    const mono = L.font || 'JetBrains Mono';
+    x.font = `600 ${fs}px "${head}"`;
+    x.textAlign = 'left';
+    x.fillText(typed((L.tl || '').toUpperCase(), v[2]), lx, ty);
+    
+    x.font = `400 ${fs}px "${mono}"`;
+    if ('letterSpacing' in x) (x as any).letterSpacing = (fs * 0.06) + 'px';
+    x.textAlign = 'right';
+    x.fillText(typed((L.tr || '').toUpperCase(), v[2]), W - m, ty);
+    
+    x.textAlign = 'left';
+    x.fillText(typed((L.bl || '').toUpperCase(), v[2]), m, by);
+    
+    x.textAlign = 'right';
+    x.fillText(typed((L.br || '').toUpperCase(), v[2]), W - m, by);
+    x.restore();
+  }
+  
+  app.renderer.setLabels(c);
+}
+
+export const resetLabels = () => { labelKey = ''; }

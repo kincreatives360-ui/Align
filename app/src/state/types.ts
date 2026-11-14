@@ -32,6 +32,8 @@ export interface MediaState {
   order: 'in' | 'shuffle';
   /** Drives the shuffle and all per-card randomness. */
   seed: number;
+  /** Which procedural media set to use ('auto' = use uploaded images). */
+  set: 'auto' | 'logos' | 'wordmarks' | 'gradients' | 'scenery' | 'ui' | 'posters' | 'cards' | 'shapes';
   /** Index in this array = card number. */
   images: MediaItem[];
 }
@@ -57,6 +59,8 @@ export interface FrameState {
   zone: '' | 'reels' | 'story' | 'feed';
   /** Whether the overlay is shown at all. */
   zoneShow: boolean;
+  /** Active social preset key. */
+  social: '';
 }
 
 /** Still / video / sequence export settings. */
