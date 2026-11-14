@@ -500,6 +500,7 @@ export const SIGNATURE_TEMPLATES: Template[] = [
       group('Motion'), turns('whirl', 'Turns', 1), range('lean', 'Lean', 0, 1, 0.25), off('bob', 'Float', 1),
       group('Look'), range('backDim', 'Depth shade', 0, 0.45, 0.14), off('backBlur', 'Back blur', 1),
     ]),
+    fill: (_P, env) => ({ count: env.n }),
     layout: haloLayout,
   },
   {
@@ -512,6 +513,7 @@ export const SIGNATURE_TEMPLATES: Template[] = [
       range('lift', 'Lift', 0, 1.5, 0.25), range('swirl', 'Swirl', -1, 1, 0), whole('flips', 'Flips', 0, 2, 0, { unit: ' turns' }), select('ease', 'Easing', { inOutQuint: 'Snappy', inOutCubic: 'Smooth', inOutExpo: 'Expo', inOutSine: 'Gentle', outBack: 'Overshoot', inOutBack: 'Anticipate', linear: 'Linear' }, 'inOutQuint'),
       group('Look'), off('flightBlur', 'Motion blur', 1),
     ]),
+    fill: (_P, env) => ({ count: env.n }),
     layout: formationsLayout,
   },
   {

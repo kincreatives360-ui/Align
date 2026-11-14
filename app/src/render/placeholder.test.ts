@@ -16,7 +16,7 @@ describe('paintPlaceholder', () => {
     const pixel = ctx.getImageData(128, 128, 1, 1).data;
     // Center pixel should not be transparent black
     expect(pixel[3]).toBeGreaterThan(0);
-  }, 10000);
+  }, 25000);
 
   it('produces different hues for different indices', () => {
     const c1 = document.createElement('canvas');

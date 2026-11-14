@@ -53,8 +53,8 @@ const placeholderLayout = (i: number, _params: P, env: Env): CardPose => {
 };
 
 export const PLACEHOLDER_TEMPLATE: Template = {
-  id: 'carousel-classic',
-  name: 'Classic carousel',
+  id: 'placeholder',
+  name: 'Placeholder',
   cat: 'carousel',
   desc: 'A calm horizontal drift through your images.',
   n: 6,

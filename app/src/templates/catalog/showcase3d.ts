@@ -1,5 +1,5 @@
 import type { Env, P, Template } from '../types';
-import { ab, clamp01, ease, lerp, M, num, rel, RX, RY, RZ, str, stepU, TAU, T, wrap } from '../kit';
+import { ab, clamp01, ease, lerp, M, num, rel, RX, RY, RZ, str, stepU, stripFill, TAU, T, wrap } from '../kit';
 import { adaptReferenceControls } from '../referenceControls';
 import type { ReferenceControl, ReferenceRangeControl, ReferenceSegmentControl, ReferenceSelectControl } from '../referenceControls';
 
@@ -219,6 +219,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       range('wobble', 'Wobble', 0, 1, 0.45), whole('wobN', 'Wobble cycles', 1, 4, 1, { unit: '\u00d7' }),
       off('breath', 'Breathe', 1, { hint: 'the faces part and close twice a loop' }), group('Look'), off('shade', 'Face shade', 1),
     ]),
+    fill: () => ({ count: 6 }),
     layout: cubicLayout,
   },
   {
@@ -230,6 +231,11 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), range('swirl', 'Swirl', -2, 2, 0, 1, { unit: ' turns' }), off('tumble', 'Tumble', 1), range('jitter', 'Card angles', 0, 2.5, 1, 0.01, { unit: '\u00d7' }),
       group('Look'), off('fog', 'Far fade', 1), off('dim', 'Far dim', 1),
     ]),
+    fill: (P, E) => {
+      const depth = num(P.depth, 11), spread = num(P.spread, 1);
+      const layers = Math.ceil(depth / (E.h * 0.8));
+      return { count: Math.min(200, layers * Math.round(E.n * spread)) };
+    },
     layout: spaceLayout,
   },
   {
@@ -242,6 +248,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       select('feel', 'Flip feel', { inOutBack: 'Anticipate', inOutCubic: 'Smooth', outBack: 'Overshoot', inOutExpo: 'Snap' }, 'inOutBack'), range('lift', 'Flip lift', 0, 0.8, 0.3),
       group('Look'), off('shade', 'Flip shade', 1),
     ]),
+    fill: (_P, E) => ({ count: E.n }),
     layout: flipFlapLayout,
   },
   {
@@ -252,6 +259,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), range('sway', 'Hero sway', 0, 1, 0.5), whole('swayN', 'Sway cycles', 1, 3, 1, { unit: '\u00d7' }), range('laps', 'Ring turns', -2, 2, 1, 1, { unit: ' turns' }), range('waveR', 'Ring wave', 0, 1, 0.35),
       group('Look'), range('soft', 'Ring blur', 0, 1, 0.85), range('ringB', 'Ring brightness', 0.1, 1, 0.55),
     ]),
+    fill: (_P, E) => ({ count: E.n }),
     layout: heroTiltLayout,
   },
   {
@@ -262,6 +270,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), range('spins', 'Spins', 1, 4, 1, 1), select('ease', 'Easing', { inOutQuint: 'Snappy', inOutCubic: 'Smooth', inOutExpo: 'Expo', inOutSine: 'Gentle', outBack: 'Overshoot', inOutBack: 'Anticipate', linear: 'Linear' }, 'inOutQuint'), range('hop', 'Hop', 0, 0.5, 0.08), off('push', 'Push back', 1.5), off('swing', 'Swing', 1),
       group('Look'), range('zoomS', 'Spin zoom', -0.4, 0.4, 0), off('shade', 'Edge shade', 1),
     ]),
+    fill: () => ({ count: 2 }),
     layout: spinLayout,
   },
   {
@@ -272,6 +281,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), range('float', 'Float', 0, 0.2, 0.04, 0.005), whole('floatN', 'Float cycles', 1, 3, 1, { unit: '\u00d7' }), off('sway', 'Sway', 0.3),
       group('Look'), range('sideB', 'Side brightness', 0.3, 1, 1), off('soft', 'Side blur', 1),
     ]),
+    fill: () => ({ count: 3 }),
     layout: trioLayout,
   },
   {
@@ -282,6 +292,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Layout'), range('gap', 'Gap', 0, 0.8, 0.05), range('drum', 'Drum size', 0.6, 2, 1, 0.01, { unit: '\u00d7' }), range('tiltD', 'Drum tilt', -0.6, 0.6, 0), range('twist', 'Twist', -0.6, 0.6, 0), off('spiral', 'Spiral', 0.5),
       group('Look'), range('dim', 'Back shade', 0, 1, 0.55), off('fadeBack', 'Back fade', 1), off('pop', 'Front pop', 0.4),
     ]),
+    fill: (_P, E) => stripFill(E, E.vx, E.w * (1 + num(_P.gap, 0.05))),
     layout: rolodexLayout,
   },
   {
@@ -293,6 +304,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), range('laps', 'Cards per loop', 1, 3, 1, 1, { unit: '\u00d7' }), range('spinG', 'Spin', -2, 2, 0, 1, { unit: ' turns' }),
       group('Look'), off('dim', 'Depth dim', 1), off('soft', 'Depth blur', 1),
     ]),
+    fill: (_P, E) => ({ count: E.n }),
     layout: goldenZoomLayout,
   },
   {
@@ -303,6 +315,10 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), whole('laps', 'Walk speed', 1, 3, 1, { unit: '\u00d7' }), off('bob', 'Step bob', 0.1, { step: 0.005 }),
       group('Look'), range('dim', 'Far dim', 0, 1, 0.45), off('fog', 'Far fade', 1),
     ]),
+    fill: (P, E) => {
+      const rows = Math.round(num(P.rows, 2)), m = Math.max(1, Math.ceil(E.n / 2 / rows));
+      return { count: rows * 2 * m };
+    },
     layout: corridorLayout,
   },
   {
@@ -314,6 +330,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), whole('rate', 'Rise speed', 1, 3, 1, { unit: '\u00d7' }), segment('pace', 'Layers', { layered: 'Own pace', same: 'Same pace' }, 'layered'), off('weave', 'Weave', 0.5), range('sway', 'Sway', 0, 0.6, 0.12), range('rock', 'Rock', 0, 0.3, 0.05),
       group('Look'), off('dim', 'Back layer dim', 0.7), off('soft', 'Back layer blur', 1),
     ]),
+    fill: (_P, E) => ({ count: E.n }),
     layout: driftLayout,
   },
   {
@@ -325,6 +342,7 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Motion'), range('ripple', 'Ripple', 0, 0.8, 0.35), whole('ripN', 'Ripple count', 1, 3, 1, { unit: '\u00d7' }), off('breathe', 'Breathe', 1, { hint: 'the fan closes a little and opens again each loop' }),
       group('Look'), range('pageShade', 'Page shade', 0, 0.6, 0.2), off('outerBlur', 'Outer blur', 1),
     ]),
+    fill: (_P, E) => ({ count: E.n }),
     layout: pageFanLayout,
   },
 ];
