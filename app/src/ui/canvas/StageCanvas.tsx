@@ -115,8 +115,9 @@ export function StageCanvas() {
 
       if (!renderer || contextLost) return;
 
-      // Sync videos to composition clock during preview playback
-      if (useClock.getState().playing) {
+      // Sync videos to composition clock during preview playback AND paused scrubbing
+      const clockState = useClock.getState();
+      if (clockState.playing || clockState.t !== lastT) {
         syncVideos(t);
       }
 

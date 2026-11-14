@@ -35,6 +35,7 @@ export function Tour() {
   const [stepIndex, setStepIndex] = useState(0);
   const holeRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const forwardBtnRef = useRef<HTMLButtonElement>(null);
 
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
@@ -54,8 +55,6 @@ export function Tour() {
   }, [step, rect]);
 
   const done = () => {
-    holeRef.current?.remove();
-    cardRef.current?.remove();
     window.removeEventListener('resize', place);
     window.removeEventListener('keydown', key, true);
     try { localStorage.setItem(TOUR_KEY, '1'); localStorage.setItem(SEEN_KEY, '1'); } catch {}
@@ -74,8 +73,7 @@ export function Tour() {
       setRail(s.rail);
     }
     place();
-    const btn = cardRef.current?.querySelector('.btn-primary');
-    if (btn instanceof HTMLElement) btn.focus();
+    if (forwardBtnRef.current) forwardBtnRef.current.focus();
   }
 
   function place() {
@@ -106,41 +104,48 @@ export function Tour() {
 
   function key(e: KeyboardEvent) {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(); }
-    else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); STEPS[stepIndex].last ? done() : go(1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); STEPS[stepIndex].last ? done() : go(1); }
+    else if (e.key === 'Enter') {
+      // Don't intercept Enter if focus is on an interactive element
+      const active = document.activeElement;
+      if (active && (active.tagName === 'BUTTON' || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA' || active.getAttribute('role') === 'button')) {
+        return; // let native handler run
+      }
+      e.preventDefault(); e.stopPropagation(); STEPS[stepIndex].last ? done() : go(1);
+    }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); if (stepIndex > 1) go(-1); }
   }
 
   useEffect(() => {
+    if (modal !== 'tour') return;
     window.addEventListener('resize', place);
     window.addEventListener('keydown', key, true);
     show();
     return () => { window.removeEventListener('resize', place); window.removeEventListener('keydown', key, true); };
-  }, [stepIndex]);
+  }, [stepIndex, modal]);
 
   return (
     <>
       {modal === 'tour' && (
         <>
           <div ref={holeRef} className={`tour-hole ${!rect ? 'none' : ''}`} style={{ pointerEvents: rect ? 'auto' : 'none' }} />
-          {rect && (
-            <div ref={cardRef} className="tour-card" role="dialog" aria-live="polite">
-              <div className="tour-step">{stepIndex} of {STEPS.length - 1}</div>
-              <h4>{step.title}</h4>
-              <p>{step.text}</p>
-              <div className="tour-row">
-                <div className="tour-dots">
-                  {STEPS.slice(1).map((_, k) => <span key={k} className={k + 1 === stepIndex ? 'on' : ''} />)}
-                </div>
-                <div className="tour-btns">
-                  {step.last ? null : <button className="ib ghost" onClick={done}>{isFirst ? 'Not now' : 'Skip'}</button>}
-                  {stepIndex > 1 && <button className="ib" onClick={() => go(-1)}>Back</button>}
-                  <button className={isLast ? 'btn-primary' : 'ib'} onClick={() => isLast ? done() : go(1)}>
-                    {isLast ? 'Start creating' : isFirst ? 'Show me around' : 'Next'}
-                  </button>
-                </div>
+          <div ref={cardRef} className="tour-card" role="dialog" aria-live="polite">
+            <div className="tour-step">{stepIndex} of {STEPS.length - 1}</div>
+            <h4>{step.title}</h4>
+            <p>{step.text}</p>
+            <div className="tour-row">
+              <div className="tour-dots">
+                {STEPS.slice(1).map((_, k) => <span key={k} className={k + 1 === stepIndex ? 'on' : ''} />)}
+              </div>
+              <div className="tour-btns">
+                {step.last ? null : <button className="ib ghost" onClick={done}>{isFirst ? 'Not now' : 'Skip'}</button>}
+                {stepIndex > 1 && <button className="ib" onClick={() => go(-1)}>Back</button>}
+                <button ref={forwardBtnRef} className={isLast ? 'btn-primary' : 'ib'} onClick={() => isLast ? done() : go(1)}>
+                  {isLast ? 'Start creating' : isFirst ? 'Show me around' : 'Next'}
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </>
       )}
       <div className="modal-backdrop" onClick={() => setModal('tour')} style={{ display: modal === 'tour' ? 'none' : 'block' }} />

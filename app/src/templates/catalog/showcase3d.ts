@@ -234,7 +234,9 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
     fill: (P, E) => {
       const depth = num(P.depth, 11), spread = num(P.spread, 1);
       const layers = Math.ceil(depth / (E.h * 0.8));
-      return { count: Math.min(200, layers * Math.round(E.n * spread)) };
+      // Ensure minimum 2 cards even with low spread and 2 images
+      const count = Math.max(2, Math.min(200, layers * Math.round(Math.max(1, E.n * spread))));
+      return { count };
     },
     layout: spaceLayout,
   },
@@ -292,7 +294,10 @@ export const SHOWCASE3D_TEMPLATES: Template[] = [
       group('Layout'), range('gap', 'Gap', 0, 0.8, 0.05), range('drum', 'Drum size', 0.6, 2, 1, 0.01, { unit: '\u00d7' }), range('tiltD', 'Drum tilt', -0.6, 0.6, 0), range('twist', 'Twist', -0.6, 0.6, 0), off('spiral', 'Spiral', 0.5),
       group('Look'), range('dim', 'Back shade', 0, 1, 0.55), off('fadeBack', 'Back fade', 1), off('pop', 'Front pop', 0.4),
     ]),
-    fill: (_P, E) => stripFill(E, E.vx, E.w * (1 + num(_P.gap, 0.05))),
+    fill: (_P, E) => {
+      const res = stripFill(E, E.vx, E.w * (1 + num(_P.gap, 0.05)));
+      return { count: Math.min(res.count, E.n) };
+    },
     layout: rolodexLayout,
   },
   {

@@ -200,3 +200,32 @@ export async function prepareFrame(T: number): Promise<void> {
     entry.el._ver = (entry.el._ver ?? 0) + 1;
   })));
 }
+
+/** Ensure all videos required by the current composition are ready before export. */
+export async function ensureVideosReady(items: MediaItem[]): Promise<void> {
+  const required = items.filter(i => i.kind === 'video');
+  if (!required.length) return;
+  await Promise.all(required.map(item => {
+    return new Promise<void>((resolve, _reject) => {
+      const entry = pool.get(item.id);
+      if (entry && entry.ready) return resolve();
+      if (entry) {
+        // Wait for loadeddata
+        const checkReady = () => {
+          if (entry.ready) resolve();
+          else setTimeout(checkReady, 50);
+        };
+        checkReady();
+      } else {
+        // Video not in pool yet, try to load it
+        getVideo(item);
+        const checkReady = () => {
+          const e = pool.get(item.id);
+          if (e && e.ready) resolve();
+          else setTimeout(checkReady, 50);
+        };
+        checkReady();
+      }
+    });
+  }));
+}

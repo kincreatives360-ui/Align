@@ -119,25 +119,29 @@ export async function exportVideo(
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
     error: e => { failure = e; }
   });
-  enc.configure(config);
-  const N = Math.max(1, Math.round(duration * fps));
-  const prep = app.prepareFrame ?? (() => Promise.resolve());
-  for (let i = 0; i < N; i++) {
-    if (signal?.aborted) { enc.close(); throw new DOMException('Export cancelled', 'AbortError'); }
+  try {
+    enc.configure(config);
+    const N = Math.max(1, Math.round(duration * fps));
+    const prep = app.prepareFrame ?? (() => Promise.resolve());
+    for (let i = 0; i < N; i++) {
+      if (signal?.aborted) { throw new DOMException('Export cancelled', 'AbortError'); }
+      if (failure) throw failure;
+      await prep(i / fps);
+      app.drawExport(i / fps, W, H);
+      const vf = new VideoFrame(app.canvas, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+      enc.encode(vf, { keyFrame: i % (fps * 2) === 0 });
+      vf.close();
+      while (enc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 2));
+      if (i % 4 === 0) { onProgress?.(i / N); await tick(); }
+    }
+    await enc.flush();
     if (failure) throw failure;
-    await prep(i / fps);
-    app.drawExport(i / fps, W, H);
-    const vf = new VideoFrame(app.canvas, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
-    enc.encode(vf, { keyFrame: i % (fps * 2) === 0 });
-    vf.close();
-    while (enc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 2));
-    if (i % 4 === 0) { onProgress?.(i / N); await tick(); }
+    muxer.finalize();
+    onProgress?.(1);
+    return makeResult(new Blob([muxer.target.buffer], { type: format === 'webm' ? 'video/webm' : 'video/mp4' }), format === 'webm' ? 'video/webm' : 'video/mp4', `align-${Date.now()}.${format}`);
+  } finally {
+    enc.close();
   }
-  await enc.flush();
-  if (failure) throw failure;
-  muxer.finalize();
-  onProgress?.(1);
-  return makeResult(new Blob([muxer.target.buffer], { type: format === 'webm' ? 'video/webm' : 'video/mp4' }), format === 'webm' ? 'video/webm' : 'video/mp4', `align-${Date.now()}.${format}`);
 }
 
 export async function exportGif(

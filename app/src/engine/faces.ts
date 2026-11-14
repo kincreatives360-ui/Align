@@ -482,10 +482,10 @@ const PHOTO_COUNT = 10;
 const photoImgs: (HTMLImageElement | null)[] = [];
 
 export function loadPhotos(): Promise<void> {
-  return Promise.all(Array.from({ length: PHOTO_COUNT }, (_, i) => new Promise<void>(res => {
+  return Promise.all(Array.from({ length: PHOTO_COUNT }, (_, i) => new Promise<void>((resolve, reject) => {
     const im = new Image(); im.decoding = 'async';
-    im.onload = () => { photoImgs[i] = im; res(); };
-    im.onerror = () => res();
+    im.onload = () => { photoImgs[i] = im; resolve(); };
+    im.onerror = () => reject(new Error(`Failed to load photo-${String(i + 1).padStart(2, '0')}.jpg`));
     im.src = new URL(`../media/photo-${String(i + 1).padStart(2, '0')}.jpg`, import.meta.url).href;
   }))).then(() => {});
 }

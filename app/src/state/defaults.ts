@@ -82,7 +82,7 @@ export const BASE_STYLE: StyleTree = {
     font: '',
   },
   logo: { on: false, id: '', pos: 'br', size: .14, opacity: 1 },
-  anim: { on: false, kind: 'rise', speed: 1 },
+  anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
 };
 
 export const DEFAULT_FRAME: FrameState = {

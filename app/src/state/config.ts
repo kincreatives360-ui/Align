@@ -51,4 +51,4 @@ export const VIDEO_FORMATS = ['mp4', 'webm'] as const;
 export const EXPORT_KINDS = ['video', 'gif', 'image', 'sequence'] as const;
 
 export const DEFAULT_ASPECT = '5:4';
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 2;

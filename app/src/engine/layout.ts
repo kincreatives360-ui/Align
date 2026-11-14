@@ -165,8 +165,6 @@ import type { ProjectState } from '../state/types';
 import { Renderer } from '../render/Renderer';
 import { hexToRgb } from './math';
 
-let labelKey = '';
-
 interface SyncLabelsApp {
   state: ProjectState;
   logos: Map<string, HTMLImageElement>;
@@ -174,11 +172,13 @@ interface SyncLabelsApp {
   renderer: Renderer;
 }
 
+let labelKeyMap = new WeakMap<Renderer, string>();
+
 function luminance(rgb: number[]): number {
   return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 }
 
-export function syncLabels(app: SyncLabelsApp, W: number, H: number, _T = 0): void {
+export function syncLabels(app: SyncLabelsApp, W: number, H: number, T = 0): void {
   const st = app.state;
   const L = st.style.labels;
   const Ti = st.style.title;
@@ -186,23 +186,28 @@ export function syncLabels(app: SyncLabelsApp, W: number, H: number, _T = 0): vo
   const logo = Lg.on && Lg.id ? app.logos?.get(Lg.id) : null;
   
   if (!L.on && !Ti.on && !logo) {
-    if (labelKey) {
+    if (labelKeyMap.has(app.renderer)) {
       app.renderer.setLabels(null);
-      labelKey = '';
+      labelKeyMap.delete(app.renderer);
     }
     return;
   }
   
-  // Simple animation progress (0 to 1)
+  // Animation progress from composition time
   const kind = st.style.anim?.kind || 'rise';
-  const v = [1, 1, 1];
+  const animAt = st.style.anim?.at || 0;
+  const animDur = st.style.anim?.dur || 1;
+  const progress = Math.min(1, Math.max(0, (T - animAt) / Math.max(0.001, animDur)));
+  const v = [progress, progress, progress];
   
   const bgColor = st.style.bg.c[0];
   const bgMode = st.style.bg.mode;
-  const key = JSON.stringify([L, Ti, Lg, !!logo, v, kind, W, H, bgColor, bgMode]);
+  const bgTransparent = st.style.bg.transparent;
+  const key = JSON.stringify([L, Ti, Lg, !!logo, v, kind, W, H, bgColor, bgMode, bgTransparent]);
   
-  if (key === labelKey) return;
-  labelKey = key;
+  const prevKey = labelKeyMap.get(app.renderer);
+  if (key === prevKey) return;
+  labelKeyMap.set(app.renderer, key);
   
   if (!app.labelCanvas) app.labelCanvas = document.createElement('canvas');
   const c = app.labelCanvas;
@@ -303,4 +308,4 @@ export function syncLabels(app: SyncLabelsApp, W: number, H: number, _T = 0): vo
   app.renderer.setLabels(c);
 }
 
-export const resetLabels = () => { labelKey = ''; }
+export const resetLabels = () => { labelKeyMap = new WeakMap<Renderer, string>(); }

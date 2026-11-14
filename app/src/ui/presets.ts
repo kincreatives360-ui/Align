@@ -18,7 +18,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   liquid: {
@@ -37,7 +37,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   prism: {
@@ -56,7 +56,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   frosted: {
@@ -75,7 +75,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   noir: {
@@ -94,7 +94,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   holo: {
@@ -113,7 +113,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   dreamy: {
@@ -132,7 +132,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   film: {
@@ -151,7 +151,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
   neon: {
@@ -170,7 +170,7 @@ export const STYLE_PRESETS: Record<string, { name: string; s: StyleTree }> = {
       title: { on: false, text: 'Collection', color: '#ffffff', size: 1, weight: 400, font: 'Inter', y: 0.5 },
       labels: { on: false, tl: 'AlignCanvas', tr: 'Selected work', bl: '2026', br: 'Made with AlignCanvas', size: 1, color: 'auto', mark: true, font: '' },
       logo: { on: false, id: '', pos: 'br', size: 0.14, opacity: 1 },
-      anim: { on: false, kind: 'rise', speed: 1 },
+      anim: { on: false, kind: 'rise', speed: 1, at: 0, dur: 1 },
     },
   },
 };

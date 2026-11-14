@@ -102,7 +102,7 @@ export const blobToDataURL = (b: Blob): Promise<string> =>
 export const dataURLToBlob = async (u: string): Promise<Blob> => (await fetch(u)).blob();
 
 /* ---------- the AlignCanvas library: media/library/manifest.json ---------- */
-const LIB = new URL('../media/library/', import.meta.url);
+const LIB = new URL('./media/library/', import.meta.url);
 
 export const libUrl = (p: string): string => new URL(p, LIB).href;
 
@@ -118,10 +118,17 @@ export interface LibraryItem {
   kind?: 'image' | 'video';
 }
 
-export const library = (): Promise<LibraryItem[]> => libP || (libP = fetch(libUrl('manifest.json'), { cache: 'no-cache' })
-  .then(r => r.ok ? r.json() : { items: [] })
-  .then(j => (Array.isArray(j?.items) ? j.items : []).filter((i: any): i is { src: string; thumb?: string; name?: string; tags?: string[]; w?: number; h?: number; kind?: 'image' | 'video' } => i && typeof i.src === 'string').map((i: any) => ({
-    ...i, name: i.name || i.src.replace(/^.*\//, '').replace(/\.\w+$/, ''), tags: Array.isArray(i.tags) ? i.tags : [],
-    kind: i.kind || (VIDEO_EXT.test(i.src) ? 'video' : 'image')
-  })))
-  .catch(() => []));
+export const library = (): Promise<LibraryItem[]> => {
+  if (libP) return libP;
+  libP = fetch(libUrl('manifest.json'), { cache: 'no-cache' })
+    .then(r => r.ok ? r.json() : { items: [] })
+    .then(j => (Array.isArray(j?.items) ? j.items : []).filter((i: any): i is { src: string; thumb?: string; name?: string; tags?: string[]; w?: number; h?: number; kind?: 'image' | 'video' } => i && typeof i.src === 'string').map((i: any) => ({
+      ...i, name: i.name || i.src.replace(/^.*\//, '').replace(/\.\w+$/, ''), tags: Array.isArray(i.tags) ? i.tags : [],
+      kind: i.kind || (VIDEO_EXT.test(i.src) ? 'video' : 'image')
+    })))
+    .catch(() => {
+      libP = null; // clear cached promise on failure so retry is possible
+      return [];
+    });
+  return libP;
+};

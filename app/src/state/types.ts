@@ -5,6 +5,7 @@
  * UI all speak in these shapes. Nothing here imports anything else except
  * small helper types.
  */
+import type { SocialPresetKey } from './config';
 
 /** Bumped whenever the persisted shape changes. See `migrate.ts`. */
 export const SCHEMA_VERSION = 2 as const;
@@ -33,7 +34,7 @@ export interface MediaState {
   /** Drives the shuffle and all per-card randomness. */
   seed: number;
   /** Which procedural media set to use ('auto' = use uploaded images). */
-  set: 'auto' | 'logos' | 'wordmarks' | 'gradients' | 'scenery' | 'ui' | 'posters' | 'cards' | 'shapes';
+  set: 'auto' | 'logos' | 'wordmarks' | 'gradients' | 'scenery' | 'ui' | 'posters' | 'cards' | 'shapes' | 'photos';
   /** Index in this array = card number. */
   images: MediaItem[];
 }
@@ -60,7 +61,7 @@ export interface FrameState {
   /** Whether the overlay is shown at all. */
   zoneShow: boolean;
   /** Active social preset key. */
-  social: '';
+  social: SocialPresetKey | '';
 }
 
 /** Still / video / sequence export settings. */
@@ -205,7 +206,7 @@ export interface StyleTree {
     font: string;
   };
   logo: { on: boolean; id: string; pos: LogoPos; size: number; opacity: number };
-  anim: { on: boolean; kind: TitleAnim; speed: number };
+  anim: { on: boolean; kind: TitleAnim; speed: number; at: number; dur: number };
 }
 
 /* ------------------------------------------------------------------ */
