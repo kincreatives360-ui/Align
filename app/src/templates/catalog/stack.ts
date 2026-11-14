@@ -21,7 +21,7 @@ const glassStyle = (edges: GlassStyle, extra: GlassStyle = {}) => ({ glass: { on
 const stackCamera = (P: P, E: Env) => ({ eye: [0, num(P.tilt) * 3, E.D + 0.8] as [number, number, number], target: [0, 0, 0] as [number, number, number] });
 
 function stackShuffleLayout(i: number, P: P, E: Env): CardPose {
-  const n = E.n, u = stepU(E.p, n, E.hold, E.ez), delta = i - u, r = delta < 0 ? delta + n : delta;
+  const n = E.n, u = stepU(E.p, n, E.hold, E.ez), delta = i - u, r = ab(delta);
   const j1 = (E.rnd(i, 3) - 0.5) * num(P.scatter), j2 = (E.rnd(i, 4) - 0.5) * num(P.scatter);
   const slot = (rr: number) => ({ x: rr * E.w * 0.07 * num(P.spread, 1) + j1 * E.w * 0.15, y: rr * E.h * 0.04 * num(P.spread, 1) + j2 * E.h * 0.1, z: -rr * num(P.deckDepth, 0.22), s: 1 - rr * num(P.shrink, 0.05), b: 1 - rr * num(P.deckShade, 0.1), rz: rr * num(P.fanAngle) * 0.06 + j2 * 0.25, blur: rr * num(P.deckBlur) * 0.15 });
   if (delta < 0 && delta > -1) {
@@ -78,7 +78,7 @@ function bentoLayout(i: number, P: P, E: Env): CardPose {
   const [tx, ty, tw, th] = tiles[i % tiles.length], unit = Math.min(2 * E.asp * 0.9 / 4, 2 * 0.88 / 3) * num(P.grid, 1), g = unit * num(P.gap, 0.06);
   const w = tw * unit - g, h = th * unit - g, x = (tx + tw / 2 - 2) * unit * (P.mirror ? -1 : 1), y = -(ty + th / 2 - 1.5) * unit;
   const order = str(P.order, 'in'), j = order === 'rev' ? E.n - 1 - i : order === 'rand' ? E.rnd(i, 3) * (E.n - 1) : i, from = str(P.from, 'below'), d = j * num(P.stagger, 0.04);
-  const inn = ease.outQuint(clamp01((E.p - d) / 0.25)), out = ease.inCubic(clamp01((E.p - num(P.outAt, 0.52) - d) / 0.2)), e = inn * (1 - out), tr = (1 - e) * num(P.travel, 0.15);
+  const inn = ease.outQuint(clamp01((E.p - d) / 0.25)), outStart = num(P.outAt, 0.52) + d, outDuration = Math.max(0.001, Math.min(0.2, 1 - outStart)), out = ease.inCubic(clamp01((E.p - outStart) / outDuration)), e = inn * (1 - out), tr = (1 - e) * num(P.travel, 0.15);
   return { x: x + (from === 'left' ? -tr : from === 'right' ? tr : 0), y: y - (from === 'below' ? tr : from === 'above' ? -tr : 0), w, h, aspect: w / h, s: num(P.scaleIn, 0.9) + (1 - num(P.scaleIn, 0.9)) * e, o: e, blur: (1 - e) * num(P.blurIn, 0.8) };
 }
 function infiniteGridFill(P: P, E: Env): Record<string, number> {
@@ -111,7 +111,7 @@ function framesLayout(i: number, P: P, E: Env): CardPose {
   return { x, y, blur: e * num(P.soft, 0.7), b: 1 - num(P.dim, 0.35) * e, s: 1 - num(P.shrink, 0.05) * e };
 }
 function mosaicFlipLayout(i: number, P: P, E: Env): CardPose {
-  const tiles = Math.floor(E.n / 2), t = i % tiles, side = Math.floor(i / tiles), cols = Math.round(num(P.cols, 4)), rows = Math.ceil(tiles / cols), c = t % cols, r = Math.floor(t / cols);
+  const tiles = Math.ceil(E.n / 2), t = i % tiles, side = Math.floor(i / tiles), cols = Math.round(num(P.cols, 4)), rows = Math.ceil(tiles / cols), c = t % cols, r = Math.floor(t / cols);
   const x = (c - (cols - 1) / 2 + (r % 2) * num(P.rowOff)) * E.w * (1 + num(P.gap, 0.1)), y = -(r - (rows - 1) / 2) * E.h * (1 + num(P.gap, 0.1)), pattern = str(P.pattern, 'diag');
   const dl = pattern === 'rows' ? r : pattern === 'cols' ? c : pattern === 'ripple' ? Math.hypot(c - (cols - 1) / 2, r - (rows - 1) / 2) * 1.4 : pattern === 'random' ? E.rnd(t, 4) * (cols + rows - 2) : c + r;
   const ph = wrap(E.p - dl * num(P.wave, 0.05), 1), th = PI * (ease.inOutCubic(sstep(0.05, 0.05 + num(P.flipT, 0.3), ph)) - ease.inOutCubic(sstep(0.55, 0.55 + num(P.flipT, 0.3), ph))), a = th + side * PI, vertical = str(P.axis, 'y') === 'x';
@@ -155,7 +155,7 @@ function gridZoomLayout(i: number, P: P, E: Env): CardPose {
   const k = order ? order[kk] : kk, k2 = order ? order[(kk + 1) % n] : (kk + 1) % n;
   const out = E.ez(sstep(0, 0.22, l)), inn = E.ez(sstep(0.3 + num(P.gridHold, 0.04), 0.56 + num(P.gridHold, 0.04), l)), pk = pos(k), pn = pos(k2);
   const zoom = l < 0.3 ? lerp(zf, ov, out) : lerp(ov, zf, inn), f = l < 0.3 ? [lerp(pk[0], 0, out), lerp(pk[1], 0, out)] : [lerp(0, pn[0], inn), lerp(0, pn[1], inn)];
-  const focus = l < 0.3 ? (i === k ? 1 - out : 0) : (i === k2 ? inn : 0), [gx, gy] = pos(i), dim = (zoom - ov) / (zf - ov);
+  const focus = l < 0.3 ? (i === k ? 1 - out : 0) : (i === k2 ? inn : 0), [gx, gy] = pos(i), zoomRange = zf - ov, dim = Math.abs(zoomRange) < 1e-6 ? 0 : (zoom - ov) / zoomRange;
   const g = num(P.swing) * 0.5 * (1 - dim), cg = Math.cos(g), sg = Math.sin(g), X = (gx - f[0]) * zoom, Y = (gy - f[1]) * zoom;
   return { x: X * cg - Y * sg, y: X * sg + Y * cg, rz: g, s: zoom, b: 1 - num(P.dimOthers, 0.4) * dim * (1 - focus), blur: num(P.blurOthers) * dim * (1 - focus) * 0.6, zBias: focus };
 }

@@ -95,7 +95,8 @@ export const KINETIC_TEMPLATES: Template[] = [
       const along = (o[0] * V[0] + o[1] * V[1] + o[2] * V[2]) / vl * num(P.stretch, 1) * 0.6;
       o = o.map((v, k) => v + V[k] / vl * along);
       const z = C[2] + o[2], sizeMix = num(P.sizeMix, 0.4);
-      return { x: C[0] + o[0], y: C[1] + o[1], z, rz: Math.atan2(V[1], V[0]) * 0.5, ry: num(P.flap, 0.4) * Math.sin(TAU * 6 * E.p + q),
+      const heading = Math.atan2(V[1], V[0]) - (V[0] < 0 && V[1] > 0 ? TAU : 0);
+      return { x: C[0] + o[0], y: C[1] + o[1], z, rz: heading * 0.5, ry: num(P.flap, 0.4) * Math.sin(TAU * 6 * E.p + q),
         s: 1 - sizeMix / 2 + sizeMix * E.rnd(i, 2), b: 1 - num(P.depthShade) * clamp01(0.5 - z * 0.6) };
     } },
 
@@ -170,7 +171,7 @@ export const KINETIC_TEMPLATES: Template[] = [
       group('Look'), off('flash', 'Flash', 1), off('cloudBlur', 'Cloud blur', 1)]),
     layout(i, P, E) {
       const t0 = 0.06 + E.rnd(i, 1) * num(P.burstSpread, 0.05), h0 = 0.3 + num(P.hang, 0.4), out = ease.outExpo(clamp01((E.p - t0) / num(P.blast, 0.2)));
-      const back = ease.inOutCubic(clamp01((E.p - h0) / 0.26)), w = out * (1 - back), d = fibo(i, E.n), dy = d[1] * (1 - num(P.flatten));
+      const back = ease.inOutCubic(clamp01((E.p - h0) / Math.min(0.26, 1 - h0))), w = out * (1 - back), d = fibo(i, E.n), dy = d[1] * (1 - num(P.flatten));
       const radius = num(P.radius, 0.95), shell = num(P.shell, 0.4), R = radius * (1 - shell / 2 + shell * E.rnd(i, 2)), ang = TAU * num(P.whirl, 1) * sstep(t0, h0 + 0.26, E.p);
       const ca = Math.cos(ang), sa = Math.sin(ang), sx = d[0] * ca + d[2] * sa, sz = -d[0] * sa + d[2] * ca, A = aim(sx, dy, sz), spin = (E.rnd(i, 3) - 0.5) * TAU * num(P.wild, 0.5);
       const flash = num(P.flash), cloudBlur = num(P.cloudBlur);

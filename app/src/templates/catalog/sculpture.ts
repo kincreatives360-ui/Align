@@ -245,7 +245,9 @@ export const SCULPTURE_TEMPLATES: Template[] = [
     layout(i, P, E) {
       const slats = Math.round(num(P.slats, 7)), j = i % slats, face = Math.floor(i / slats), u = E.p * 3, k = Math.floor(u), f = u - k;
       const from = str(P.from, 'l'), wave = num(P.wave, 0.045), offset = from === 'r' ? slats - 1 - j : from === 'c' ? ab(j - (slats - 1) / 2) : j;
-      const st = offset * wave, pause = num(P.pause, 0.2), win = Math.max(0.1, 1 - (slats - 1) * wave - pause - 0.05), e = E.ez(clamp01((f - st - pause) / win)), th = (k + e) * TAU / 3;
+      const pause = num(P.pause, 0.2), requestedStagger = (slats - 1) * wave, totalStagger = Math.min(requestedStagger, Math.max(0, 1 - pause - 0.15));
+      const st = offset * wave * (requestedStagger > 0 ? totalStagger / requestedStagger : 1), win = 1 - totalStagger - pause - 0.05;
+      const e = E.ez(clamp01((f - st - pause) / win)), th = (k + e) * TAU / 3;
       const ap = E.w / (2 * Math.tan(PI / 3)), x = (j - (slats - 1) / 2) * E.w * (1 + num(P.gap, 0.04)), curve = num(P.curve), pop = num(P.pop), ce = Math.sin(PI * e), ang = th + face * TAU / 3;
       return { m: M(T(x, 0, -curve * 0.3 * x * x + pop * ce), RY(Math.atan(curve * 0.6 * x)), T(0, 0, -ap), RY(-ang), T(0, 0, ap)), b: 1 - num(P.faceShade, 0.3) + num(P.faceShade, 0.3) * Math.max(0, Math.cos(ang)), blur: num(P.turnBlur) * 0.6 * ce, img: face * slats + j };
     } },

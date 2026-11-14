@@ -48,7 +48,7 @@ function spaceLayout(i: number, P: P, E: Env) {
 }
 
 function flipFlapLayout(i: number, P: P, E: Env) {
-  const tiles = Math.floor(E.n / 2);
+  const tiles = Math.ceil(E.n / 2);
   const t = i % tiles;
   const side = Math.floor(i / tiles);
   const u = t - (tiles - 1) / 2;

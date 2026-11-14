@@ -20,6 +20,9 @@ export function VisualPanel() {
       let next = s;
       for (const [group, values] of Object.entries(preset.s)) {
         for (const [key, value] of Object.entries(values)) {
+          if ((group === 'title' && key === 'text')
+            || (group === 'labels' && ['tl', 'tr', 'bl', 'br'].includes(key))
+            || (group === 'logo' && key === 'id')) continue;
           next = setPath(next, `style.${group}.${key}`, value);
         }
       }

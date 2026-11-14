@@ -24,6 +24,9 @@ describe('durationRef', () => {
     expect(d).toBe(10);
     expect(Number.isNaN(d)).toBe(false);
   });
+  it('uses the template count when a stepped count is zero', () => {
+    expect(durationRef({ step: true, perCard: 2, n: 5 }, { count: 0 })).toBe(10);
+  });
 });
 
 describe('wrapTime / formatTime', () => {

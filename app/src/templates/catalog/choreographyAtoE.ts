@@ -374,7 +374,7 @@ const templates: ChoreoRaw[] = [
 
   // Tesseract: a cube of photos turns inside a larger cube; they swap sizes, passing through each other. Mid-pass both
   // cubes swell toward spheres (their faces bow outward with real curvature) and settle flat again as they part.
-  {...NEW, id: 'tesseract', name: 'Tesseract', n: 12, aspect: 1, cardH: .6, dur: 16, fov: 30,
+  {...NEW, id: 'tesseract', name: 'Tesseract', n: 12, fixedN: true, aspect: 1, cardH: .6, dur: 16, fov: 30,
     desc: 'A cube of photos turns inside a larger cube, the two passing through each other.',
     params: [G('Layout'), range('outer', 'Outer size', .3, .8, .52), range('innerRatio', 'Inner size', .25, .65, .42, .01, {unit: '×'}), range('panel', 'Face fill', .5, 1, .86),
       range('skew', 'Cube offset', 0, 1, .55, .01, {hint: 'how differently the two cubes are tipped'}), range('camLift', 'Camera height', -.4, .8, .32),
@@ -427,7 +427,8 @@ const templates: ChoreoRaw[] = [
       const pos = tilt([P.radius * out[0], 0, P.radius * out[2]]), X0 = tilt([Math.cos(psi), 0, -Math.sin(psi)]);
       const Z0 = tilt([-out[0] * Math.sin(dl), Math.cos(dl), -out[2] * Math.sin(dl)]);
       const X = [lerp(X0[0], 1, lw), lerp(X0[1], 0, lw), lerp(X0[2], 0, lw)], Z = [lerp(Z0[0], 0, lw), lerp(Z0[1], .1, lw), lerp(Z0[2], 1, lw)];
-      const sp = ab(wheel(E.p + .002).ang - wheel(E.p - .002).ang) / .004 / ((Sp * K + 1) * TAU), sc = 1 + .45 * lw;
+      const loopAdvance = (Sp * K + 1) * TAU, angleDelta = wheel(E.p + .002).ang - wheel(E.p - .002).ang;
+      const sp = ab(angleDelta + Math.round(-angleDelta / loopAdvance) * loopAdvance) / .004 / loopAdvance, sc = 1 + .45 * lw;
       return {m: M(T(pos[0], pos[1] + lw * .45, pos[2] + lw * .55), frame3(0, 0, 0, X, Z), S(sc, sc, 1)),
         b: 1 - P.loserDim * env * (1 - sel), blur: P.spinBlur * sstep(.4, 1.6, sp) * .5, zBias: lw * 3};
     }},
@@ -457,8 +458,8 @@ const templates: ChoreoRaw[] = [
       if (ab(dd) < half){ const ang = PI * sm5((dd + half) / (2 * half)); ry = ang > PI / 2 ? ang - PI : ang; }
       const age = j / m, sc = 1 - P.shrink * age;
       // bend toward the centre of the turn in depth: edges fold back when the path swings round behind
-      const bend = clampAbs(-P.curl * k[2] * .8, 2.4) / sc * Math.cos(ry);
-      return {x: p1[0], y: p1[1], z: p1[2], ry: ry + P.lean * .5 * t[0], rz: -P.lean * .3 * t[1], bend, img: wrap(Math.floor(fpos), n),
+      const bend = clampAbs(-P.curl * k[2] * .8, 2.4) / sc * Math.cos(ry), lean = P.lean * .5 * t[0] * sm5(ab(dd) / Math.max(1e-4, half));
+      return {x: p1[0], y: p1[1], z: p1[2], ry: ry + lean, rz: -P.lean * .3 * t[1], bend, img: wrap(Math.floor(fpos), n),
         s: sc, o: Math.pow(1 - j / (m + 1), P.echoFade), blur: P.echoBlur * age * .7, b: 1 - .18 * age, zBias: -j * .05};
     }},
 
@@ -492,7 +493,7 @@ const templates: ChoreoRaw[] = [
       const nrm = [-t[2], 0, t[0]], cx = cam[0] - p[0], cz = cam[2] - p[2], ch = Math.hypot(cx, cz) || 1, fd = (nrm[0] * cx + nrm[2] * cz) / ch, sg = fd < 0 ? -1 : 1;
       const Z = [nrm[0] * sg, 0, nrm[2] * sg], ry = Math.atan2(Z[0], Z[2]), rx = -P.lookUp * Math.atan2(cam[1] - y, ch);
       const bend = clampAbs(-P.curve * (k[0] * Z[0] + k[2] * Z[2]) * sc, 1.6 / E.w) * sstep(.04, .3, ab(fd));
-      const o = sstep(0, .3 + 1.6 * P.rimFade, u) * (1 - sstep(per - 2.6, per - .3, u));
+      const o = sstep(0, .3 + 1.6 * P.rimFade, u) * (1 - sstep(per - 2.6, per - .3, u)) * sstep(0, .08, ab(fd));
       return {m: M(T(p[0], y, p[2]), RY(ry), RX(rx), S(sc, sc, 1)), bend, o, img: i % E.n,
         blur: P.farBlur * clamp01(-p[2] / rMax * .5 + .5) * .6, b: .9 + .1 * (1 - l0 / LM)};
     }},

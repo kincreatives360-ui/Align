@@ -20,6 +20,7 @@ interface PoolEntry {
   ready: boolean;
   url: string;
   poster?: HTMLCanvasElement;
+  seekQueue?: Promise<void>;
 }
 
 const pool = new Map<string, PoolEntry>();
@@ -95,22 +96,31 @@ export function setVideosPlaying(playing: boolean): void {
 export function seekVideo(item: MediaItem, time: number): Promise<void> {
   const entry = pool.get(item.id);
   if (!entry || !entry.ready) return Promise.reject(new Error('Video not ready'));
-  return new Promise((resolve, reject) => {
+  const seek = () => new Promise<void>((resolve, reject) => {
     const originalOnSeeked = entry.el.onseeked;
-    entry.el.onseeked = () => {
-      entry.el.onseeked = originalOnSeeked;
-      if (typeof originalOnSeeked === 'function') {
-        originalOnSeeked.call(entry.el, new Event('seeked'));
-      }
+    let timeout: ReturnType<typeof setTimeout>;
+    const onSeeked = () => {
+      clearTimeout(timeout);
+      if (entry.el.onseeked === onSeeked) entry.el.onseeked = originalOnSeeked;
+      if (typeof originalOnSeeked === 'function') originalOnSeeked.call(entry.el, new Event('seeked'));
       resolve();
     };
-    entry.el.currentTime = time;
-    // Timeout fallback
-    setTimeout(() => {
-      entry.el.onseeked = originalOnSeeked;
+    entry.el.onseeked = onSeeked;
+    timeout = setTimeout(() => {
+      if (entry.el.onseeked === onSeeked) entry.el.onseeked = originalOnSeeked;
       reject(new Error('Seek timeout'));
     }, 5000);
+    try {
+      entry.el.currentTime = time;
+    } catch (error) {
+      clearTimeout(timeout);
+      if (entry.el.onseeked === onSeeked) entry.el.onseeked = originalOnSeeked;
+      reject(error);
+    }
   });
+  const request = entry.seekQueue ? entry.seekQueue.then(seek) : seek();
+  entry.seekQueue = request.catch(() => undefined);
+  return request;
 }
 
 /** Get a poster frame (first frame) as a canvas. */

@@ -1073,9 +1073,9 @@ export function paperRollLayout(i: number, P: P, E: Env): CardPose {
   const col = i % cols;
   const row = Math.floor(i / cols);
   const dr = String(P.colDir || 'same') === 'alt' && col % 2 ? -1 : 1;
-  const R = num(P.roll, 0.3);
   const L = m * E.h * (1 + num(P.gap, 0.08));
-  const Y = Math.max(0.05, (L - TAU * R) / 4);
+  const R = Math.max(0.001, Math.min(num(P.roll, 0.3), L / TAU));
+  const Y = (L - TAU * R) / 4;
   let s = wrap(row / m + col * num(P.offR, 0) / m + E.p * Math.round(num(P.laps, 1)) * dr, 1) * L;
   let y, z, th, rl = 0;
   

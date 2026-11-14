@@ -152,7 +152,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     desc: 'A ring of curved cards wrapped around the camera, melting into liquid-glass edges.',
     style: sideGlass(0.3, 0.8, { bulge: 0.8, dispersion: 0.95, highlight: 0.25 }),
     params: params([
-      group('Layout'), range('radius', 'Radius', 0.4, 2.5, 1), range('gap', 'Gap', 0, 0.8, 0.2), range('curve', 'Card curve', 0, 2, 1), range('ellipse', 'Ellipse', 0.6, 1.6, 1, 0.01, { unit: '?' }),
+      group('Layout'), range('radius', 'Radius', 0.4, 2.5, 1), range('gap', 'Gap', 0, 0.8, 0.2), range('curve', 'Card curve', 0, 2, 1), range('ellipse', 'Ellipse', 0.6, 1.6, 1, 0.01, { unit: '×' }),
       range('camH', 'Camera height', -1, 1, 0), group('Motion'), off('rimWave', 'Rim wave', 0.6), off('bob', 'Bob', 0.3),
       group('Look'), off('pop', 'Front scale', 0.4), off('sideShade', 'Side shade', 1), off('sideBlur', 'Side blur', 1),
     ]),
@@ -180,7 +180,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     style: sideGlass(0.22, 0.55),
     params: params([
       group('Layout'), range('angle', 'Side angle', 0, 1.4, 0.95), range('gap', 'Gap', 0, 0.8, 0.3), range('sideOffset', 'Side offset', 0.3, 1.2, 0.66), range('sideDepth', 'Side depth', 0, 2.5, 0.9),
-      range('stackDepth', 'Stack depth', 0, 0.4, 0.05), range('sideScale', 'Side scale', 0.6, 1.2, 1, 0.01, { unit: '?' }),
+      range('stackDepth', 'Stack depth', 0, 0.4, 0.05), range('sideScale', 'Side scale', 0.6, 1.2, 1, 0.01, { unit: '×' }),
       group('Motion'), range('lean', 'Lean in move', -1, 1, 0), off('hop', 'Hop', 1),
       group('Look'), off('sideShade', 'Side shade', 0.8), off('sideBlur', 'Side blur', 1),
     ]),
@@ -237,7 +237,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     desc: 'Slanted columns ride up and down past each other.',
     params: params([
       group('Layout'), range('cols', 'Columns', 1, 6, 3, 1), range('gap', 'Gap', 0, 0.8, 0.1), range('slant', 'Slant', -0.6, 0.6, -0.14), off('colSpace', 'Column spacing', 1), off('colOffset', 'Column offset', 1), off('colDepth', 'Column depth', 1.5),
-      group('Motion'), segment('flow', 'Flow', { alt: 'Alternate', same: 'Same way' }, 'alt'), range('oddSpeed', 'Fast columns', 1, 3, 1, 1, { unit: '?', hint: 'whole cycles per loop, so it stays seamless' }),
+      group('Motion'), segment('flow', 'Flow', { alt: 'Alternate', same: 'Same way' }, 'alt'), range('oddSpeed', 'Fast columns', 1, 3, 1, 1, { unit: '×', hint: 'whole cycles per loop, so it stays seamless' }),
       group('Look'), off('edgeShade', 'Edge shade', 0.8), off('edgeBlur', 'Edge blur', 1),
     ]),
     fill: elevatorFill,
@@ -248,7 +248,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     desc: 'Rows of images scroll in alternating directions.',
     params: params([
       group('Layout'), range('rows', 'Rows', 1, 5, 3, 1), range('gap', 'Gap', 0, 0.8, 0.12), off('rowSpace', 'Row spacing', 1), off('rowOffset', 'Row offset', 1), off('rowDepth', 'Row depth', 1.5), range('slant', 'Slant', -0.5, 0.5, 0),
-      group('Motion'), segment('flow', 'Flow', { alt: 'Alternate', same: 'Same way' }, 'alt'), range('altSpeed', 'Fast rows', 1, 3, 1, 1, { unit: '?', hint: 'whole cycles per loop, so it stays seamless' }),
+      group('Motion'), segment('flow', 'Flow', { alt: 'Alternate', same: 'Same way' }, 'alt'), range('altSpeed', 'Fast rows', 1, 3, 1, 1, { unit: '×', hint: 'whole cycles per loop, so it stays seamless' }),
       group('Look'), off('edgeShade', 'Edge shade', 0.8), off('edgeBlur', 'Edge blur', 1),
     ]),
     fill: imageRepeaterFill,
@@ -272,7 +272,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     style: edgeGlass({ top: 1, bottom: 1 }, 0.2, 0.75, 0.35),
     params: params([
       group('Layout'), range('cols', 'Columns', 1, 4, 3, 1), range('gap', 'Gap', 0, 0.8, 0.08), off('colSpace', 'Column spacing', 1), off('colOffset', 'Column offset', 1), range('colTurn', 'Column turn', -1, 1, 0),
-      group('Motion'), segment('flow', 'Flow', { alt: 'Alternate', same: 'Same way' }, 'alt'), range('oddSpeed', 'Fast columns', 1, 3, 1, 1, { unit: '?', hint: 'whole cycles per loop, so it stays seamless' }),
+      group('Motion'), segment('flow', 'Flow', { alt: 'Alternate', same: 'Same way' }, 'alt'), range('oddSpeed', 'Fast columns', 1, 3, 1, 1, { unit: '×', hint: 'whole cycles per loop, so it stays seamless' }),
       group('Look'), off('pop', 'Centre scale', 0.4), off('edgeShade', 'Edge shade', 0.8), off('edgeBlur', 'Edge blur', 1),
     ]),
     fill: glassStreamFill,
@@ -294,7 +294,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     desc: 'Columns of photos run like paper over rollers at the top and bottom.',
     params: params([
       group('Layout'), range('cols', 'Columns', 1, 5, 3, 1), range('gap', 'Gap', 0, 0.8, 0.08), range('colSp', 'Column spread', 0, 6, 2.5, 0.05), range('roll', 'Roller', 0.1, 0.8, 0.3), off('offR', 'Column offset', 1),
-      group('Motion'), range('laps', 'Laps per loop', 1, 3, 1, 1, { unit: '?' }), segment('colDir', 'Columns run', { same: 'Same way', alt: 'Alternate' }, 'same'),
+      group('Motion'), range('laps', 'Laps per loop', 1, 3, 1, 1, { unit: '×' }), segment('colDir', 'Columns run', { same: 'Same way', alt: 'Alternate' }, 'same'),
       group('Look'), off('curl', 'Wrap rollers', 1, { hint: 'cards bend round the rollers' }), range('dim', 'Back shade', 0, 1, 0.4), off('fadeBack', 'Back fade', 1),
     ]),
     mods: { poseRy: -24, poseRx: 6 },
@@ -305,8 +305,8 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     id: 'pleats', name: 'Pleated Wall', cat: 'carousel', n: 16, aspect: 0.5, cardH: 1.05, dur: 34, frame: '5:4', isNew: true,
     desc: 'A panoramic wall of tall photos folded into pleats, curving round you as it glides past and breathes open.',
     params: params([
-      group('Layout'), range('fold', 'Fold', 0, 1.2, 0.62), range('curve', 'Curve', 0, 1, 0.5), range('spacing', 'Spacing', 0.7, 1.6, 1, 0.01, { unit: '?' }), off('jog', 'Height jog', 1),
-      group('Motion'), range('breathe', 'Breathe', 0, 1, 0.55), whole('breaths', 'Breaths', 1, 4, 2, { unit: '?', hint: 'whole breaths per loop, so it stays seamless' }), off('ripple', 'Ripple', 1),
+      group('Layout'), range('fold', 'Fold', 0, 1.2, 0.62), range('curve', 'Curve', 0, 1, 0.5), range('spacing', 'Spacing', 0.7, 1.6, 1, 0.01, { unit: '×' }), off('jog', 'Height jog', 1),
+      group('Motion'), range('breathe', 'Breathe', 0, 1, 0.55), whole('breaths', 'Breaths', 1, 4, 2, { unit: '×', hint: 'whole breaths per loop, so it stays seamless' }), off('ripple', 'Ripple', 1),
       group('Look'), range('foldShade', 'Fold shade', 0, 0.6, 0.16), off('sideDim', 'Edge dim', 1), off('sideBlur', 'Edge blur', 1),
     ]),
     fill: pleatsFill,
@@ -317,7 +317,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     mods: { poseRx: 10 },
     desc: 'Four lanes of photos cross in an X at different depths and stream past each other in opposite directions.',
     params: params([
-      group('Layout'), segment('lanes', 'Lanes', { '2': 'Two', '4': 'Four' }, '4'), range('gap', 'Gap', 0, 0.8, 0.08), range('angle', 'Angle', 0, 45, 20, 1, { unit: '?' }), range('laneOff', 'Lane spread', 0.4, 1.6, 0.95), range('depth', 'Depth', 0, 1.5, 0.8), range('arc', 'Curve', 0, 1, 0.35),
+      group('Layout'), segment('lanes', 'Lanes', { '2': 'Two', '4': 'Four' }, '4'), range('gap', 'Gap', 0, 0.8, 0.08), range('angle', 'Angle', 0, 45, 20, 1, { unit: '°' }), range('laneOff', 'Lane spread', 0.4, 1.6, 0.95), range('depth', 'Depth', 0, 1.5, 0.8), range('arc', 'Curve', 0, 1, 0.35),
       group('Motion'), off('ripple', 'Ripple', 1), range('lean', 'Lean', -1, 1, 0),
       group('Look'), off('laneDim', 'Back dim', 0.7), off('laneBlur', 'Back blur', 1),
     ]),
@@ -330,7 +330,7 @@ export const CAROUSEL_TEMPLATES: Template[] = [
     desc: 'A ribbon of photos ripples and rolls over like silk in the wind as it streams across the frame.',
     params: params([
       group('Layout'), range('gap', 'Gap', 0, 0.8, 0.02), range('freq', 'Frequency', 0.5, 3, 1.35),
-      group('Motion'), range('amp', 'Wave', 0, 1, 0.8), whole('waves', 'Waves', 1, 4, 2, { unit: '?' }), range('depthW', 'Depth', 0, 1.2, 0.5), range('roll', 'Roll', 0, 1.5, 0.75), off('flutter', 'Flutter', 1), range('curl', 'Card curl', 0, 2, 0.8),
+      group('Motion'), range('amp', 'Wave', 0, 1, 0.8), whole('waves', 'Waves', 1, 4, 2, { unit: '×' }), range('depthW', 'Depth', 0, 1.2, 0.5), range('roll', 'Roll', 0, 1.5, 0.75), off('flutter', 'Flutter', 1), range('curl', 'Card curl', 0, 2, 0.8),
       group('Look'), range('sheen', 'Sheen', 0, 0.5, 0.14), off('troughBlur', 'Trough blur', 1),
     ]),
     fill: silkFill,

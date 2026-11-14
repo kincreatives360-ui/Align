@@ -118,7 +118,7 @@ function puzzleLayout(i: number, P: P, E0: Env): CardPose {
 function slotFill(P: P): Record<string, number> { return { count: Math.round(num(P.reels, 3)) * 8 }; }
 function slotLayout(i: number, P: P, E: Env): CardPose {
   const R = Math.round(num(P.reels, 3)), reel = Math.floor(i / 8), k = i % 8, Sp = Number(P.spins ?? 2), adv = 8 / Sp + 8 * Math.round(num(P.laps, 2));
-  const q = E.p * Sp, j = Math.floor(q), f = q - j, st = 0.06 + reel * num(P.stagger, 0.08), len = 0.72 - (R - 1) * num(P.stagger, 0.08) * 0.2;
+  const q = E.p * Sp, j = Math.floor(q), f = q - j, requestedStagger = num(P.stagger, 0.08), fullStagger = Math.min(requestedStagger * Math.max(0, R - 1), 0.275), stagger = R > 1 ? fullStagger / (R - 1) : requestedStagger, st = 0.06 + reel * stagger, len = 0.72 - (R - 1) * stagger * 0.2;
   const g = f < st ? 0 : f > st + len ? 1 : (() => { const t = (f - st) / len, c1 = 1.70158 * num(P.bounce, 1), c3 = c1 + 1; return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2; })();
   const turn = (j * adv + g * adv) / 8 * TAU, a = k / 8 * TAU - turn, rad = E.h * 1.04 * num(P.reelR, 1) / (2 * Math.tan(PI / 8)), ca = Math.cos(a);
   const sp = f > st && f < st + len ? (1 - (f - st) / len) : 0, won = f < st ? 1 - sstep(st - 0.04, st, f) : sstep(st + len, st + len + 0.06, f);

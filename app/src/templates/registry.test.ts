@@ -316,6 +316,141 @@ describe('template categories', () => {
     expect(values('deal')).toMatchObject({ deckPos: 'bl', flipAmt: 1, poseRx: 24 });
   });
 
+  it('completes the final Bento tile exit by the end of the loop', () => {
+    const template = galleryTemplate('bento');
+    const P = { ...defaults(template), outAt: 0.56, stagger: 0.06 } as P;
+    const pose = template.layout(template.n - 1, P, { ...galleryEnv(template.n), p: 1 });
+
+    expect(pose.o).toBe(0);
+  });
+
+  it('keeps cards behind the top card visible after the first Stack Shuffle step', () => {
+    const template = galleryTemplate('stack-shuffle');
+    const P = defaults(template) as P;
+    const E = { ...galleryEnv(template.n), p: 1.5 / template.n, hold: 0, ez: (value: number) => value };
+    const pose = template.layout(0, P, E);
+
+    expect(pose.o).toBeGreaterThan(0);
+    expect(pose.z!).toBeCloseTo(-1.5 * Number(P.deckDepth), 3);
+  });
+
+  it('finishes every Slot Reels stop before the next spin begins', () => {
+    const template = galleryTemplate('slots');
+    const P = { ...defaults(template), reels: 6, stagger: 0.2 } as P;
+    const before = template.layout(5 * 8, P, { ...galleryEnv(template.n), p: 0.5 - 1e-6 });
+    const after = template.layout(5 * 8, P, { ...galleryEnv(template.n), p: 0.5 });
+
+    expect(before.rx!).toBeCloseTo(after.rx!, 3);
+  });
+
+  it('keeps Roulette motion blur local across the loop boundary', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'roulette')!;
+    const pose = template.layout(0, defaults(template) as P, { ...galleryEnv(template.n), p: 0 });
+
+    expect(pose.blur).toBeLessThan(0.01);
+  });
+
+  it('keeps Murmuration bank continuous across the velocity-angle branch', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'murmuration')!;
+    const P = defaults(template) as P;
+    const crossing = (3 * Math.PI / 4 - 0.3) / (2 * Math.PI);
+    const before = template.layout(0, P, { ...galleryEnv(template.n), p: crossing - 1e-5 }).rz!;
+    const after = template.layout(0, P, { ...galleryEnv(template.n), p: crossing + 1e-5 }).rz!;
+
+    expect(Math.abs(after - before)).toBeLessThan(0.01);
+  });
+
+  it('lets the last Tri-Vision slat finish before the next loop', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'trivision')!;
+    const P = { ...defaults(template), slats: 12, wave: 0.1, pause: 0.5 } as P;
+    const E = { ...galleryEnv(template.n), ez: (value: number) => value };
+    const before = template.layout(11, P, { ...E, p: 1 - 1e-6 }).m!;
+    const start = template.layout(11, P, { ...E, p: 0 }).m!;
+
+    for (let i = 0; i < before.length; i++) expect(before[i]).toBeCloseTo(start[i], 3);
+  });
+
+  it('keeps Immersive screen curvature continuous at the end of the wrap window', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'immersive')!;
+    const P = { ...defaults(template), immerse: 0.45, swell: 0.3, glideT: 0.15 } as P;
+    const before = template.layout(0, P, { ...galleryEnv(template.n), p: (1 - 1e-6) / template.n });
+    const end = template.layout(0, P, { ...galleryEnv(template.n), p: 1 / template.n });
+
+    expect(before.bend).toBeCloseTo(end.bend!, 3);
+  });
+
+  it('keeps Echo Trail edge-on when its image selection changes with maximum lean', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'echo-trail')!;
+    const P = { ...defaults(template), path: 'orbit', lean: 1, lag: 0 } as P;
+    const pose = template.layout(0, P, { ...galleryEnv(template.n), p: 0.5 / template.n });
+
+    expect(Math.abs(pose.ry!)).toBeCloseTo(Math.PI / 2, 2);
+  });
+
+  it('keeps grid zoom finite when overview equals focused zoom', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'grid-zoom')!;
+    const P = { ...defaults(template), fill: 0.4, overview: 1 } as P;
+    const pose = template.layout(0, P, { ...galleryEnv(template.n), h: 0.8, p: 0.4 });
+
+    expect(Object.values(pose).filter((value): value is number => typeof value === 'number').every(Number.isFinite)).toBe(true);
+  });
+
+  it('keeps Paper Roll spacing continuous when the requested roller is larger than its run', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'paper-roll')!;
+    const P = { ...defaults(template), cols: 5, roll: 0.8, gap: 0 } as P;
+    const before = template.layout(0, P, { ...galleryEnv(template.n), p: 1 - 1e-6 });
+    const start = template.layout(0, P, { ...galleryEnv(template.n), p: 0 });
+
+    expect(before.y).toBeCloseTo(start.y!, 2);
+    expect(before.z).toBeCloseTo(start.z!, 2);
+  });
+
+  it('fades Galaxy cards through face reversals at the camera edge', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'galaxy')!;
+    const P = { ...defaults(template), perArm: 8, turns: 1, flow: 1, rimFade: 0 } as P;
+    const poses = Array.from({ length: 1025 }, (_, step) =>
+      template.layout(0, P, { ...galleryEnv(template.n), p: step / 1024 }),
+    );
+    let largestTurn = { distance: 0, before: poses[0], after: poses[1] };
+    for (let i = 0; i < poses.length - 1; i++) {
+      const before = poses[i].m!;
+      const after = poses[i + 1].m!;
+      const distance = Math.abs(before[0] - after[0]) + Math.abs(before[2] - after[2])
+        + Math.abs(before[8] - after[8]) + Math.abs(before[10] - after[10]);
+      if (distance > largestTurn.distance) largestTurn = { distance, before: poses[i], after: poses[i + 1] };
+    }
+
+    expect(largestTurn.distance).toBeGreaterThan(0.5);
+    expect(Math.max(largestTurn.before.o ?? 1, largestTurn.after.o ?? 1)).toBeLessThan(0.1);
+  });
+
+  it('returns Big Bang cards to the deck at the loop boundary with the longest hang', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'big-bang')!;
+    const P = { ...defaults(template), hang: 0.6 } as P;
+    const before = template.layout(0, P, { ...galleryEnv(template.n), p: 1 - 1e-6 });
+    const start = template.layout(0, P, { ...galleryEnv(template.n), p: 0 });
+
+    expect(before.x).toBeCloseTo(start.x!, 2);
+    expect(before.y).toBeCloseTo(start.y!, 2);
+    expect(before.z).toBeCloseTo(start.z!, 2);
+  });
+
+  it.each([
+    ['glass-carousel', 'ellipse', '×'],
+    ['coverflow', 'sideScale', '×'],
+    ['elevator', 'oddSpeed', '×'],
+    ['repeater', 'altSpeed', '×'],
+    ['paper-roll', 'laps', '×'],
+    ['pleats', 'spacing', '×'],
+    ['pleats', 'breaths', '×'],
+    ['silk', 'waves', '×'],
+    ['crossfire', 'angle', '°'],
+  ])('uses the correct unit for %s.%s', (templateId, key, expectedUnit) => {
+    const control = galleryTemplate(templateId).params?.find(candidate => candidate.type === 'range' && candidate.path === `params.${key}`);
+
+    expect(control && 'unit' in control ? control.unit : undefined).toBe(expectedUnit);
+  });
+
   it('keeps archived Kinetic timing, controls, defaults, and bounded fill behavior', () => {
     const kinetic = TEMPLATES.filter(template => template.cat === 'kinetic');
     const byId = (id: string) => kinetic.find(template => template.id === id)!;

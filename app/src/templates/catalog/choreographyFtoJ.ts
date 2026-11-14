@@ -637,7 +637,7 @@ const CHOREO_I_TEMPLATES: Template[] = normalizeChoreo((() => {
       const {R, X, pitch, mS: m} = E, row = Math.floor(i / m), j = i % m;
       const rf = R > 1 ? row / (R - 1) - .5 : 0, A = P.depthS * .55 * (1 + P.twistS * rf * .6) * (1 + P.sway * .2 * Math.sin(TAU * E.p));
       const path = sPath(X, Math.max(1e-3, A)), Ltot = m * pitch;
-      const s = wrap(j * pitch + (row % 2) * pitch * .5 + E.p * Math.round(P.laps) * E.n * pitch, Ltot) - (Ltot - path.L) / 2;
+      const s = wrap(j * pitch + (row % 2) * pitch * .5 + E.p * Math.round(P.laps) * m * pitch, Ltot) - (Ltot - path.L) / 2;
       const fade = sstep(0, pitch * 1.2, s) * sstep(0, pitch * 1.2, path.L - s), x = sAt(path, s), k = path.k;
       const z = A * Math.sin(k * x), dz = A * k * Math.cos(k * x), ddz = -A * k * k * Math.sin(k * x);
       const y = (row - (R - 1) / 2) * E.h * (1 + P.gapS);
@@ -716,7 +716,8 @@ const CHOREO_J_TEMPLATES: Template[] = normalizeChoreo((() => {
       range('pan', 'Pan inside', 0, 1, .5), range('push', 'Push in', 0, 1, .5),
       G('Look'), range('edgeShade', 'Side shade', 0, .6, .3), off('glideBlur', 'Glide blur', 1)],
     layout(i, P, E){
-      const n = E.n, D = E.D, F = E.p * n, gt = P.glideT, sw = P.swell, im = P.immerse;
+      const n = E.n, D = E.D, F = E.p * n, timingScale = Math.min(1, .95 / (2 * P.swell + P.immerse));
+      const gt = P.glideT * timingScale, sw = P.swell * timingScale, im = P.immerse * timingScale;
       // one beat per photo: arrive and settle, wrap round the lens, inside, unwrap; the glide on overlaps the unwrap
       const free = Math.max(.04, 1 - gt * .5 - 2 * sw - im), a1 = free * .55, a2 = a1 + sw, a3 = a2 + im, a4 = a3 + sw;
       const env = (q: number) => q >= 1 ? 0 : glide(q, a1, a2) - glide(q, a3, a4);

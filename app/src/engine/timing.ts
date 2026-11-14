@@ -17,7 +17,7 @@ type TimedTemplate = { dur?: number; step?: boolean; perCard?: number; fixedN?: 
 /** The template's base duration in seconds (one full loop). Shared by the timeline and the frame builder. */
 export function durationRef(t: TimedTemplate, P: Record<string, unknown>): number {
   if (t.step) {
-    const n = t.fixedN ? t.n : numOr(P.count, t.n);
+    const n = t.fixedN ? t.n : numOr(P.count, t.n) || t.n;
     const per = t.perCard ?? 1.4;
     return per * n;
   }

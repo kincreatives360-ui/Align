@@ -231,16 +231,46 @@ describe('buildFrame', () => {
     const loopDuration = template.step ? (template.perCard ?? 1.4) * template.n : (template.dur ?? 10);
     const state = applyTemplate(stateFor(id), template);
     const start = buildFrame(state, 0, 640, 360, { rate: 1 });
+    const before = buildFrame(state, loopDuration * (1 - 1e-6), 640, 360, { rate: 1 });
     const end = buildFrame(state, loopDuration, 640, 360, { rate: 1 });
 
     expect(end.cards).toHaveLength(start.cards.length);
     for (let i = 0; i < start.cards.length; i++) {
+      const loopStart = start.cards[(i - (template.step ? template.n : 0) + start.cards.length) % start.cards.length];
       for (let j = 0; j < start.cards[i].m.length; j++) expect(end.cards[i].m[j]).toBeCloseTo(start.cards[i].m[j], 4);
       expect(end.cards[i].opacity).toBeCloseTo(start.cards[i].opacity, 4);
       expect(end.cards[i].blur).toBeCloseTo(start.cards[i].blur, 4);
+      if (before.cards[i].opacity > 0.1 && loopStart.opacity > 0.1) {
+        expect(before.cards[i].face.key).toBe(loopStart.face.key);
+        for (let j = 0; j < loopStart.m.length; j++) {
+          expect(Math.abs(before.cards[i].m[j] - loopStart.m[j])).toBeLessThan(0.02);
+        }
+        expect(Math.abs(before.cards[i].bend - loopStart.bend)).toBeLessThan(0.02);
+        expect(Math.abs(before.cards[i].bendY - loopStart.bendY)).toBeLessThan(0.02);
+      }
     }
     end.camera.eye.forEach((value, i) => expect(value).toBeCloseTo(start.camera.eye[i], 4));
     end.camera.target.forEach((value, i) => expect(value).toBeCloseTo(start.camera.target[i], 4));
+  });
+
+  it('keeps Tesseract at twelve faces when the project count differs', () => {
+    const template = TEMPLATES.find(candidate => candidate.id === 'tesseract')!;
+    const state = applyTemplate(stateFor(template.id), template);
+    state.params = { count: 3 };
+
+    expect(buildFrame(state, 0, 640, 360, { rate: 1 }).cards).toHaveLength(12);
+  });
+
+  it.each(['mosaic-flip', 'flip-flap'])('keeps all cards finite for %s at counts one and three', id => {
+    const template = TEMPLATES.find(candidate => candidate.id === id)!;
+    for (const count of [1, 3]) {
+      const state = applyTemplate(stateFor(id), template);
+      state.params = { count };
+      const frame = buildFrame(state, 0.2, 640, 360, { rate: 1 });
+
+      expect(frame.cards).toHaveLength(count);
+      expect(frame.cards.every(card => Array.from(card.m).every(Number.isFinite))).toBe(true);
+    }
   });
 
   it('preserves Sculpture matrix poses, per-card bending, and generated layouts in the shared frame pipeline', () => {
